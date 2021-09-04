@@ -1,16 +1,27 @@
 <template>
-  <div >
-    <setting-alert-page v-if="!isSet"></setting-alert-page>
-    <div v-else>summary</div>
+  <div>
+    <setting-alert-page v-if="!isSet" />
+    <div v-else>
+      summary
+    </div>
   </div>
 </template>
 
 <script>
   import SettingAlertPage from './SettingAlertPage.vue'
   export default {
-    name: 'summary-page',
+    name: 'SummaryPage',
     components: { SettingAlertPage },
-    props: ['isSet', 'userdata'],
+    props: {
+      isSet:{
+        type: Boolean,
+        default: false
+      },
+      userdata:{
+        type: Object,
+        default: null
+      }
+      },
     methods: {
       open (link) {
         this.$electron.shell.openExternal(link)

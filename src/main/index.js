@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow } from 'electron'
 
 /**
  * Set `__static` path to static files in production
@@ -15,7 +15,7 @@ if (process.env.NODE_ENV !== 'development') {
 let mainWindow
 const winURL =
   process.env.NODE_ENV === 'development'
-    ? `http://localhost:9080`
+    ? 'http://localhost:9080'
     : `file://${__dirname}/index.html`
 
 function createWindow () {
@@ -73,6 +73,3 @@ app.on('ready', () => {
   if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdates()
 })
  */
-
-const Store = require('electron-store')
-Store.initRenderer()

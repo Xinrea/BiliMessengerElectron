@@ -1,26 +1,37 @@
 <template>
   <div>
-      <v-dialog
-          v-model="dialog"
-          width="500"
-      >
-        <v-card>
-          <v-card-title>扫码登录</v-card-title>
-          <v-card-subtitle>{{statusText}}</v-card-subtitle>
-          <v-card-text>
-            <v-img :src="qrImage" max-width="160px"></v-img>
-          </v-card-text>
-        </v-card>
-      </v-dialog>
+    <v-dialog
+      v-model="dialog"
+      width="500"
+    >
+      <v-card>
+        <v-card-title>扫码登录</v-card-title>
+        <v-card-subtitle>{{ statusText }}</v-card-subtitle>
+        <v-card-text>
+          <v-img
+            :src="qrImage"
+            max-width="160px"
+          />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
     <v-card
-        elevation="2"
+      elevation="2"
     >
       <v-card-text>
-            <v-avatar
-                color="dark"
-                size="62"
-            ><img :src="avatarUrl"></v-avatar>
-            <v-btn elevation="1" style="margin-left: 10px" @click="openLoginDialog()" color="secondary">登录</v-btn>
+        <v-avatar
+          color="dark"
+          size="62"
+        >
+          <img :src="avatarUrl">
+        </v-avatar>
+        <v-btn
+          elevation="1"
+          style="margin-left: 10px"
+          @click="openLoginDialog()"
+        >
+          请先登录
+        </v-btn>
       </v-card-text>
     </v-card>
   </div>
@@ -31,7 +42,12 @@ import * as https from 'https'
 
 export default {
   name: 'SettingPage',
-  props: ['userdata'],
+  props: {
+    userdata: {
+      type: Object,
+      default: null
+    }
+  },
   data () {
     return {
       dialog: false,
@@ -41,16 +57,16 @@ export default {
       avatarUrl: 'static/noface.jpg'
     }
   },
-  mounted () {
-    if (this.userdata !== null) {
-      this.updateUserInfo(this.userdata['DedeUserID'])
-    }
-  },
   watch: {
-    dialog (val, oldval) {
+    dialog (val) {
       if (val === false) {
         clearInterval(this.qrTimer)
       }
+    }
+  },
+  mounted () {
+    if (this.userdata !== null) {
+      this.updateUserInfo(this.userdata['DedeUserID'])
     }
   },
   methods: {

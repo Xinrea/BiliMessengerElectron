@@ -38,6 +38,8 @@ function logStats (proc, data) {
   console.log(log)
 }
 
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+
 function startRenderer () {
   return new Promise((resolve, reject) => {
     rendererConfig.entry.renderer = [path.join(__dirname, 'dev-client')].concat(rendererConfig.entry.renderer)
@@ -48,10 +50,14 @@ function startRenderer () {
       heartbeat: 2500
     })
     compiler.hooks.compilation.tap('compilation', compilation => {
-      compilation.hooks.htmlWebpackPluginAfterEmit.tapAsync('html-webpack-plugin-after-emit', (data, cb) => {
+      HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync('html-webpack-plugin-after-emit', (data, cb) => {
         hotMiddleware.publish({ action: 'reload' })
         cb()
       })
+      // compilation.hooks.htmlWebpackPluginAfterEmit.tapAsync('html-webpack-plugin-after-emit', (data, cb) => {
+      //   hotMiddleware.publish({ action: 'reload' })
+      //   cb()
+      // })
     })
 
     compiler.hooks.done.tap('done', stats => {
@@ -59,21 +65,24 @@ function startRenderer () {
     })
 
     const server = new WebpackDevServer(
-      compiler,
       {
-        contentBase: path.join(__dirname, '../'),
-        quiet: true,
+        static: {
+          directory: path.join(__dirname, "../")
+        },
         hot: true,
-        before (app, ctx) {
-          // app.use(hotMiddleware)
-          ctx.middleware.waitUntilValid(() => {
-            resolve()
-          })
-        }
-      }
+        host: '127.0.0.1',
+        port: 9080,
+        // onBeforeSetupMiddleware (app) {
+        //   app.use(hotMiddleware)
+        //   // ctx.middleware.waitUntilValid(() => {
+        //   //   resolve()
+        //   // })
+        // }
+      },
+      compiler
     )
 
-    server.listen(9080)
+    server.start()
   })
 }
 
@@ -108,13 +117,15 @@ function startMain () {
       }
 
       resolve()
+
+      startElectron()
     })
   })
 }
 
 function startElectron () {
   var args = [
-    '--inspect=5858',
+    '--inspect=8053',
     path.join(__dirname, '../dist/electron/main.js')
   ]
 
@@ -179,7 +190,6 @@ function init () {
   Promise.all([startRenderer(), startMain()])
     .then(() => {
       console.error('start electron after init')
-      startElectron()
     })
     .catch(err => {
       console.error(err)
