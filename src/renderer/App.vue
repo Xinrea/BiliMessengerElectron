@@ -113,20 +113,21 @@ export default {
       dialog: true,
       isSet: false,
       userdata: null,
-      rid: '21488',
+      rid: "",
       selectedItem: 0
     }
   },
   mounted () {
     // Loading stored data
+    console.log("Reading settings: roomID ", this.Store.get('roomID', '21484828'))
+    this.rid = this.Store.get('roomID', '21484828')
+    console.log("Reading settings: userdata ", this.Store.get('loginRaw', null))
     this.userdata = this.Store.get('loginRaw', null)
     if (this.userdata === null) {
       this.isSet = false
     } else {
       this.isSet = true
     }
-    console.log("Reading settings: roomID ", this.Store.get('roomID', '21484828'))
-    this.roomID = this.Store.get('roomID', '21484828')
   },
   methods: {
     RouteTo: function (path) {
@@ -147,7 +148,7 @@ export default {
       console.log('login data removed')
     },
     onUpdateRoomID: function (roomID) {
-      this.roomID = roomID
+      this.rid = roomID
       this.Store.set('roomID', roomID)
       console.log(this.Store.get('roomID'))
     }

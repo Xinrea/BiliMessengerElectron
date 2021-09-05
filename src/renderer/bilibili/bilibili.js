@@ -27,7 +27,6 @@ export function getRoomInfo(roomID, resolve, reject) {
             dd += chunk
           })
           res.on('end', ()=>{
-            console.log(dd.toString())
             let resp = JSON.parse(dd.toString())
             if (resp['code'] == 0) {
               resolve(resp['data'])

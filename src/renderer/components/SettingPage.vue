@@ -142,10 +142,12 @@ export default {
       if (val === true) {
         this.updateUserInfo(this.userdata['DedeUserID'])
       }
+    },
+    rid (val) {
+      this.roomEditValue = val
     }
   },
   mounted () {
-    this.roomEditValue = this.rid
     if (this.isSet) {
       this.updateUserInfo(this.userdata['DedeUserID'])
     }
@@ -158,20 +160,10 @@ export default {
       return this.accountData['face']
     },
     updateUserInfo (uid) {
-      // https://api.bilibili.com/x/space/acc/info?mid=1581869085&jsonp=jsonp
       let that = this
       this.Bilibili.getUserInfo(uid, resp=>{
         that.accountData = resp
       })
-      // https.get('https://api.bilibili.com/x/space/acc/info?mid=' + uid + '&jsonp=jsonp', res => {
-      //   res.on('data', chunk => {
-      //     console.log(chunk.toString())
-      //     let resp = JSON.parse(chunk.toString())
-      //     if (resp['code'] == 0) {
-      //       that.accountData = resp['data']
-      //     }
-      //   })
-      // })
     },
     openLoginDialog () {
       let that = this
