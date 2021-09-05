@@ -31,17 +31,8 @@
             <img :src="getAvatarUrl()">
           </v-avatar>
         </div>
-
-        <div v-if="!isSet">
-          <v-btn
-            elevation="1"
-            @click="openLoginDialog()"
-          >
-            请先登录
-          </v-btn>
-        </div>
         <div
-          v-else
+          v-if="isSet"
           class="d-flex flex-column align-start justify-center"
         >
           <div
@@ -53,6 +44,18 @@
           <div class="text-body-2">
             {{ accountData['mid'] }}
           </div>
+          <div class="text-body-2">
+            {{ accountData['sign'] }}
+          </div>
+        </div>
+        <div class="ml-auto d-flex align-center">
+          <v-btn
+            elevation="1"
+            :color="isSet?'error':'primary'"
+            @click="isSet?logout():openLoginDialog()"
+          >
+            {{ isSet ? '退出登录':'请先登录' }}
+          </v-btn>
         </div>
       </v-card-text>
     </v-card>
@@ -60,8 +63,8 @@
       <v-card-text>
         <v-sheet>
           <v-text-field
+            v-model="roomEditValue"
             label="直播间号"
-            :value="roomEditValue"
             :rules="rules"
             hide-details="auto"
             @change="roomEdit = true"
@@ -103,6 +106,10 @@ export default {
     userdata: {
       type: Object,
       default: null
+    },
+    rid: {
+      type: String,
+      default: "2"
     }
   },
   data () {
@@ -121,7 +128,6 @@ export default {
       ],
       roomEditValue: "21484828",
       roomEdit: false,
-      roomID: "",
       snackBar: false,
       snackBarText: ""
     }
@@ -139,14 +145,14 @@ export default {
     }
   },
   mounted () {
-    console.log(this.userdata)
-    if (this.userdata !== null) {
+    this.roomEditValue = this.rid
+    if (this.isSet) {
       this.updateUserInfo(this.userdata['DedeUserID'])
     }
   },
   methods: {
     getAvatarUrl () {
-      if (this.accountData === null) {
+      if (!this.isSet) {
         return 'static/noface.jpg'
       }
       return this.accountData['face']
@@ -229,11 +235,24 @@ export default {
       shell.openExternal(url)
     },
     saveRoomID () {
-      this.roomID = this.roomEditValue
-      this.roomEdit = false
-      this.snackBarText = "直播间号设置成功"
-      this.snackBar = true
-    } 
+      let that = this
+      console.log(this.roomEditValue, this.rid)
+      this.Bilibili.getRoomInfo(this.roomEditValue, ()=>{
+        that.$emit('updateRoomID', that.roomEditValue)
+        that.roomEdit = false
+        that.showSnackBar('直播间号保存成功')
+      }, ()=>{
+        that.showSnackBar('不存在的直播间，请检查是否填写正确')
+      })
+
+    },
+    logout () {
+      this.$emit('logout')
+    },
+    showSnackBar(text) {
+        this.snackBarText = text
+        this.snackBar = true
+    }
   }
 }
 </script>

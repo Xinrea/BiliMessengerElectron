@@ -91,7 +91,10 @@
           <router-view
             :is-set="isSet"
             :userdata="userdata"
+            :rid="rid"
             @login-success="onLogin"
+            @logout="onLogout"
+            @updateRoomID="onUpdateRoomID"
           />
         </keep-alive>
       </v-container>
@@ -110,6 +113,7 @@ export default {
       dialog: true,
       isSet: false,
       userdata: null,
+      rid: '21488',
       selectedItem: 0
     }
   },
@@ -121,6 +125,8 @@ export default {
     } else {
       this.isSet = true
     }
+    console.log("Reading settings: roomID ", this.Store.get('roomID', '21484828'))
+    this.roomID = this.Store.get('roomID', '21484828')
   },
   methods: {
     RouteTo: function (path) {
@@ -133,6 +139,17 @@ export default {
       this.userdata = params
       this.Store.set('loginRaw', params)
       console.log('login data stored')
+    },
+    onLogout: function () {
+      this.isSet = false
+      this.userdata = null
+      this.Store.delete('loginRaw')
+      console.log('login data removed')
+    },
+    onUpdateRoomID: function (roomID) {
+      this.roomID = roomID
+      this.Store.set('roomID', roomID)
+      console.log(this.Store.get('roomID'))
     }
   }
 }
