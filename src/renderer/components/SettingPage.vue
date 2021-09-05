@@ -18,22 +18,75 @@
     <v-card
       elevation="2"
     >
-      <v-card-text>
-        <v-avatar
-          color="dark"
-          size="62"
+      <v-card-text
+        class="h_info"
+        style="display: flex"
+      >
+        <div>
+          <v-avatar
+            color="dark"
+            size="80"
+            class="mr-3"
+          >
+            <img :src="getAvatarUrl()">
+          </v-avatar>
+        </div>
+
+        <div v-if="!isSet">
+          <v-btn
+            elevation="1"
+            @click="openLoginDialog()"
+          >
+            请先登录
+          </v-btn>
+        </div>
+        <div
+          v-else
+          class="d-flex flex-column align-start justify-center"
         >
-          <img :src="avatarUrl">
-        </v-avatar>
-        <v-btn
-          elevation="1"
-          style="margin-left: 10px"
-          @click="openLoginDialog()"
-        >
-          请先登录
-        </v-btn>
+          <div
+            class="text-body-1 font-weight-bold pointer"
+            @click="openURL('https://space.bilibili.com/'+userdata['DedeUserID'])"
+          >
+            {{ accountData['name'] }}
+          </div>
+          <div class="text-body-2">
+            {{ accountData['mid'] }}
+          </div>
+        </div>
       </v-card-text>
     </v-card>
+    <v-card class="mt-3">
+      <v-card-text>
+        <v-sheet>
+          <v-text-field
+            label="直播间号"
+            :value="roomEditValue"
+            :rules="rules"
+            hide-details="auto"
+            @change="roomEdit = true"
+          >
+            <template #append-outer>
+              <v-btn
+                plain
+                color="primary"
+                :disabled="!roomEdit"
+                @click="saveRoomID"
+              >
+                保存
+              </v-btn>
+            </template>
+          </v-text-field>
+        </v-sheet>
+      </v-card-text>
+    </v-card>
+    <v-snackbar
+      v-model="snackBar"
+      timeout="1500"
+      right
+    >
+      {{ snackBarText }}
+    </v-snackbar>
   </div>
 </template>
 
@@ -43,6 +96,10 @@ import * as https from 'https'
 export default {
   name: 'SettingPage',
   props: {
+    isSet: {
+      type: Boolean,
+      default: false
+    },
     userdata: {
       type: Object,
       default: null
@@ -54,7 +111,19 @@ export default {
       qrImage: '',
       statusText: '请使用 bilibili 手机 App 扫描下方二维码',
       qrTimer: null,
-      avatarUrl: 'static/noface.jpg'
+      accountData: {
+        type: Object,
+        default: null
+      },
+      rules:[
+        value => !!value || '必须填写直播间号',
+        value => Number.isInteger(Number(value)) || "直播间号必须为数字",
+      ],
+      roomEditValue: "21484828",
+      roomEdit: false,
+      roomID: "",
+      snackBar: false,
+      snackBarText: ""
     }
   },
   watch: {
@@ -62,23 +131,41 @@ export default {
       if (val === false) {
         clearInterval(this.qrTimer)
       }
+    },
+    isSet (val) {
+      if (val === true) {
+        this.updateUserInfo(this.userdata['DedeUserID'])
+      }
     }
   },
   mounted () {
+    console.log(this.userdata)
     if (this.userdata !== null) {
       this.updateUserInfo(this.userdata['DedeUserID'])
     }
   },
   methods: {
+    getAvatarUrl () {
+      if (this.accountData === null) {
+        return 'static/noface.jpg'
+      }
+      return this.accountData['face']
+    },
     updateUserInfo (uid) {
       // https://api.bilibili.com/x/space/acc/info?mid=1581869085&jsonp=jsonp
       let that = this
-      https.get('https://api.bilibili.com/x/space/acc/info?mid=' + uid + '&jsonp=jsonp', res => {
-        res.on('data', chunk => {
-          let resp = JSON.parse(chunk.toString())
-          that.avatarUrl = resp['data']['face']
-        })
+      this.Bilibili.getUserInfo(uid, resp=>{
+        that.accountData = resp
       })
+      // https.get('https://api.bilibili.com/x/space/acc/info?mid=' + uid + '&jsonp=jsonp', res => {
+      //   res.on('data', chunk => {
+      //     console.log(chunk.toString())
+      //     let resp = JSON.parse(chunk.toString())
+      //     if (resp['code'] == 0) {
+      //       that.accountData = resp['data']
+      //     }
+      //   })
+      // })
     },
     openLoginDialog () {
       let that = this
@@ -104,7 +191,6 @@ export default {
             }
           }
           that.qrTimer = setInterval(() => {
-            console.log('timer running')
             let statusReq = https.request(postOptions, res => {
               let dd = ''
               res.on('data', secCheck => {
@@ -137,11 +223,25 @@ export default {
           }, 5000)
         })
       })
-    }
+    },
+    openURL (url) {
+      let shell = require('electron').shell
+      shell.openExternal(url)
+    },
+    saveRoomID () {
+      this.roomID = this.roomEditValue
+      this.roomEdit = false
+      this.snackBarText = "直播间号设置成功"
+      this.snackBar = true
+    } 
   }
 }
 </script>
 
 <style>
+
+.pointer {
+  cursor: pointer;
+}
 
 </style>

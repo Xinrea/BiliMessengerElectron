@@ -27,54 +27,58 @@
         nav
         dense
       >
-        <v-list-item
-          link
-          @click="RouteTo('/')"
+        <v-list-item-group
+          v-model="selectedItem"
         >
-          <v-list-item-icon>
-            <v-icon>mdi-home-circle-outline</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>总览</v-list-item-title>
-        </v-list-item>
-        <v-list-item link>
-          <v-list-item-icon>
-            <v-icon>mdi-format-list-bulleted-square</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>舰长列表</v-list-item-title>
-        </v-list-item>
-        <v-list-item link>
-          <v-list-item-icon>
-            <v-icon>mdi-file-outline</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>模板管理</v-list-item-title>
-        </v-list-item>
-        <v-list-item link>
-          <v-list-item-icon>
-            <v-icon>mdi-gift-outline</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>兑换码管理</v-list-item-title>
-        </v-list-item>
-        <v-list-item link>
-          <v-list-item-icon>
-            <v-icon>mdi-message-outline</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>私信群发</v-list-item-title>
-        </v-list-item>
-        <v-list-item
-          link
-          @click="RouteTo('/setting')"
-        >
-          <v-list-item-icon>
-            <v-icon>mdi-cog-outline</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>设置</v-list-item-title>
-        </v-list-item>
-        <v-list-item link>
-          <v-list-item-icon>
-            <v-icon>mdi-information-outline</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>关于</v-list-item-title>
-        </v-list-item>
+          <v-list-item
+            link
+            @click="RouteTo('/')"
+          >
+            <v-list-item-icon>
+              <v-icon>mdi-home-circle-outline</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>总览</v-list-item-title>
+          </v-list-item>
+          <v-list-item link>
+            <v-list-item-icon>
+              <v-icon>mdi-format-list-bulleted-square</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>舰长列表</v-list-item-title>
+          </v-list-item>
+          <v-list-item link>
+            <v-list-item-icon>
+              <v-icon>mdi-file-outline</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>模板管理</v-list-item-title>
+          </v-list-item>
+          <v-list-item link>
+            <v-list-item-icon>
+              <v-icon>mdi-gift-outline</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>兑换码管理</v-list-item-title>
+          </v-list-item>
+          <v-list-item link>
+            <v-list-item-icon>
+              <v-icon>mdi-message-outline</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>私信群发</v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            link
+            @click="RouteTo('/setting')"
+          >
+            <v-list-item-icon>
+              <v-icon>mdi-cog-outline</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>设置</v-list-item-title>
+          </v-list-item>
+          <v-list-item link>
+            <v-list-item-icon>
+              <v-icon>mdi-information-outline</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>关于</v-list-item-title>
+          </v-list-item>
+        </v-list-item-group>
       </v-list>
     </v-navigation-drawer>
 
@@ -83,11 +87,13 @@
       <!-- 给应用提供合适的间距 -->
       <v-container fluid>
         <!-- 如果使用 vue-router -->
-        <router-view
-          :is-set="isSet"
-          :userdata="userdata"
-          @login-success="onLogin"
-        />
+        <keep-alive>
+          <router-view
+            :is-set="isSet"
+            :userdata="userdata"
+            @login-success="onLogin"
+          />
+        </keep-alive>
       </v-container>
     </v-main>
   </v-app>
@@ -103,10 +109,18 @@ export default {
       overlay: true,
       dialog: true,
       isSet: false,
-      userdata: null
+      userdata: null,
+      selectedItem: 0
     }
   },
   mounted () {
+    // Loading stored data
+    this.userdata = this.Store.get('loginRaw', null)
+    if (this.userdata === null) {
+      this.isSet = false
+    } else {
+      this.isSet = true
+    }
   },
   methods: {
     RouteTo: function (path) {
@@ -117,6 +131,7 @@ export default {
     onLogin: function (params) {
       this.isSet = true
       this.userdata = params
+      this.Store.set('loginRaw', params)
       console.log('login data stored')
     }
   }

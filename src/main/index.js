@@ -54,6 +54,10 @@ app.on('activate', () => {
   }
 })
 
+// Init storage
+const Store = require('electron-store');
+Store.initRenderer();
+
 /**
  * Auto Updater
  *

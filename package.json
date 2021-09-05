@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
+    "electron-store": "^8.0.0",
     "qrcode": "^1.4.4",
     "querystring": "^0.2.1",
     "vue": "^2.5.16",
