@@ -11,7 +11,7 @@
         <v-card-text>
           <v-hover v-slot="{ hover }">
             <v-img
-              :src="cover"
+              :src="roominfo['cover']"
               :class="{ 'rounded-lg': true}"
             >
               <div
@@ -39,6 +39,16 @@
               </div>
             </v-img>
           </v-hover>
+        </v-card-text>
+        <v-divider />
+        <v-card-text>
+          {{ roominfo.title }}
+          <v-badge
+            v-if="roominfo.online > 0"
+            color="orange"
+            class="ml-3"
+            :content="'人气值：'+roominfo.online"
+          />
         </v-card-text>
       </v-card>
       <v-card
@@ -86,7 +96,6 @@
     },
     data: function () {
       return {
-        cover: "",
         graph: {
           value: [
             4,
@@ -104,8 +113,11 @@
             '9月',
             '10月',
           ]
+        },
+        roominfo: {
+          cover: "",
+          title: ""
         }
-
       }
     },
     watch: {
@@ -124,7 +136,7 @@
         let that = this
         this.Bilibili.getRoomInfo(this.rid, res=>{
           console.log(res)
-          that.cover = res['room_info']['cover']
+          that.roominfo = res['room_info']
         })
       }
     }
