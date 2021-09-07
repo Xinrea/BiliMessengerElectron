@@ -14,6 +14,12 @@
               :src="roominfo['cover']"
               :class="{ 'rounded-lg': true}"
             >
+              <v-badge
+                v-if="roominfo.live_status == 1"
+                color="orange"
+                style="position: absolute; top: 25px; left: 10px; opacity: 0.8;"
+                :content="'人气值：'+roominfo.online"
+              />
               <div
                 class="d-flex flex-column justify-center align-center"
                 :class="{'on-hover':hover}"
@@ -39,16 +45,20 @@
               </div>
             </v-img>
           </v-hover>
-        </v-card-text>
-        <v-divider />
-        <v-card-text>
-          {{ roominfo.title }}
-          <v-badge
-            v-if="roominfo.online > 0"
-            color="orange"
-            class="ml-3"
-            :content="'人气值：'+roominfo.online"
-          />
+          <div class="text-overline">
+            {{ roominfo.title }}
+          </div>
+          <v-divider />
+          <div class="mt-3">
+            <v-avatar
+              color="dark"
+              size="40"
+              class="mr-3"
+            >
+              <img :src="userinfo.base_info.face">
+            </v-avatar>
+            {{ userinfo.base_info.uname }}
+          </div>
         </v-card-text>
       </v-card>
       <v-card
@@ -115,8 +125,17 @@
           ]
         },
         roominfo: {
-          cover: "",
-          title: ""
+          cover: '',
+          title: ''
+        },
+        userinfo: {
+          base_info: {
+            uname: '',
+            face: ''
+          },
+          relation_info: {
+            attention: 0
+          }
         }
       }
     },
@@ -137,6 +156,9 @@
         this.Bilibili.getRoomInfo(this.rid, res=>{
           console.log(res)
           that.roominfo = res['room_info']
+          that.userinfo = res['anchor_info']
+        }, ()=>{
+
         })
       }
     }
