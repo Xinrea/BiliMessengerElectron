@@ -39,7 +39,10 @@
             </v-list-item-icon>
             <v-list-item-title>总览</v-list-item-title>
           </v-list-item>
-          <v-list-item link>
+          <v-list-item
+            link
+            @click="RouteTo('/guard_list')"
+          >
             <v-list-item-icon>
               <v-icon>mdi-format-list-bulleted-square</v-icon>
             </v-list-item-icon>
@@ -123,11 +126,7 @@ export default {
     this.rid = this.Store.get('roomID', '21484828')
     console.log("Reading settings: userdata ", this.Store.get('loginRaw', null))
     this.userdata = this.Store.get('loginRaw', null)
-    if (this.userdata === null) {
-      this.isSet = false
-    } else {
-      this.isSet = true
-    }
+    this.isSet = this.userdata !== null;
   },
   methods: {
     RouteTo: function (path) {

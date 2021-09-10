@@ -11,6 +11,11 @@ export default new Router({
       component: require('@/components/SummaryPage').default
     },
     {
+      path: '/guard_list',
+      name: 'guard-list-page',
+      component: require('@/components/GuardListPage').default
+    },
+    {
       path: '/setting',
       name: 'setting-page',
       component: require('@/components/SettingPage').default

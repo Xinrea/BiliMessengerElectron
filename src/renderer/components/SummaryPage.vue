@@ -11,14 +11,14 @@
         <v-card-text>
           <v-hover v-slot="{ hover }">
             <v-img
-              :src="roominfo['cover']"
+              :src="roomInfo['cover']"
               :class="{ 'rounded-lg': true}"
             >
               <v-badge
-                v-if="roominfo.live_status == 1"
+                v-if="roomInfo.live_status === 1"
                 color="orange"
                 style="position: absolute; top: 25px; left: 10px; opacity: 0.8;"
-                :content="'人气值：'+roominfo.online"
+                :content="'人气值：'+roomInfo.online"
               />
               <div
                 class="d-flex flex-column justify-center align-center"
@@ -46,7 +46,7 @@
             </v-img>
           </v-hover>
           <div class="text-overline">
-            {{ roominfo.title }}
+            {{ roomInfo.title }}
           </div>
           <v-divider />
           <div class="mt-3">
@@ -55,9 +55,24 @@
               size="40"
               class="mr-3"
             >
-              <img :src="userinfo.base_info.face">
+              <img
+                :src="userInfo.base_info.face"
+                alt="头像"
+              >
             </v-avatar>
-            {{ userinfo.base_info.uname }}
+            <span
+              class="pointer"
+              @click="open('https://space.bilibili.com/'+roomInfo.uid)"
+            >
+              {{ userInfo.base_info.uname }}
+            </span>
+            <v-chip
+              class="ma-2"
+              color="orange"
+              text-color="white"
+            >
+              关注数：{{ userInfo.relation_info.attention }}
+            </v-chip>
           </div>
         </v-card-text>
       </v-card>
@@ -71,8 +86,8 @@
             class="rounded-lg"
           >
             <v-sparkline
-              :labels="graph.label"
-              :value="graph.value"
+              :labels="graph.timestamp"
+              :value="graph.follower"
               stroke-linecap="round"
               line-width="1.2"
               color="orange"
@@ -107,28 +122,18 @@
     data: function () {
       return {
         graph: {
-          value: [
-            4,
-            2,
-            3,
-            10,
-            80,
-            50,
-          ],
-          label: [
-            '5月',
-            '6月',
-            '7月',
-            '8月',
-            '9月',
-            '10月',
-          ]
+          follower: [1],
+          timestamp: [100]
         },
-        roominfo: {
+        roomInfo: {
           cover: '',
-          title: ''
+          title: '',
+          uid: 61639371,
+          online: 0,
+          live_status: 2,
+          live_start_time: 0
         },
-        userinfo: {
+        userInfo: {
           base_info: {
             uname: '',
             face: ''
@@ -145,7 +150,6 @@
       }
     },
     mounted () {
-      this.updateInfo()
     },
     methods: {
       open (link) {
@@ -153,12 +157,25 @@
       },
       updateInfo() {
         let that = this
-        this.Bilibili.getRoomInfo(this.rid, res=>{
-          console.log(res)
-          that.roominfo = res['room_info']
-          that.userinfo = res['anchor_info']
-        }, ()=>{
-
+        this.Bilibili.getRoomInfo(this.rid).then(data=>{
+          console.log(that.rid, data)
+          that.roomInfo = data['room_info']
+          that.userInfo = data['anchor_info']
+          that.Bilibili.getFollowerHistory(that.roomInfo.uid).then(data=>{
+            console.log(that.roomInfo.uid, data)
+            that.graph = {
+              follower: [],
+              timestamp: []
+            }
+            data.forEach(item=>{
+              that.graph.follower.push(item.follower)
+              that.graph.timestamp.push(item.time)
+            })
+          }).catch(e=>{
+            console.error(e)
+          })
+        }).catch(e=>{
+          console.error(e)
         })
       }
     }
@@ -173,6 +190,6 @@
   color: rgb(255, 255, 255) !important;
 }
 .on-hover {
-  background-color: rgb(0, 0, 0,0.4);
+  background-color: rgba(0, 0, 0, 0.4);
 }
 </style>
