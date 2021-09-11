@@ -1,4 +1,5 @@
 import * as https from 'https'
+import * as http from 'http'
 
 export function getUserInfo(mid, callback) {
   return new Promise((resolve, reject) => {
@@ -78,10 +79,10 @@ export function getFollowerHistory(uid) {
   })
 }
 
-export function getGuardList(rid, uid, page, page_size) {
+export function getGuardList(uid, page, page_size) {
   return new Promise((resolve, reject)=>{
     try {
-      https.get('https://api.live.bilibili.com/xlive/app-room/v2/guardTab/topList?roomid=' + rid+'&page='+page+'&page_size='+page_size+'&ruid='+uid, res => {
+      https.get('https://api.live.bilibili.com/xlive/app-room/v2/guardTab/topList?roomid=1'+'&page='+page+'&page_size='+page_size+'&ruid='+uid, res => {
         let dd = ''
         res.on('data', chunk => {
           dd += chunk
@@ -90,6 +91,58 @@ export function getGuardList(rid, uid, page, page_size) {
           let resp = JSON.parse(dd.toString())
           if (resp.code === 0) {
             resolve(resp.data)
+          } else {
+            reject(resp)
+          }
+        })
+        res.on('error', err => {
+          reject(err)
+        })
+      })
+    }catch (e) {
+      reject(e)
+    }
+  })
+}
+
+export function getGuardValidDate(rid) {
+  return new Promise((resolve, reject)=>{
+    try {
+      http.get('http://guard.joi-club.cn/day?room='+rid, res => {
+        let dd = ''
+        res.on('data', chunk => {
+          dd += chunk
+        })
+        res.on('end', () => {
+          let resp = JSON.parse(dd.toString())
+          if (resp.Code === 0) {
+            resolve(resp.Data)
+          } else {
+            reject(resp)
+          }
+        })
+        res.on('error', err => {
+          reject(err)
+        })
+      })
+    }catch (e) {
+      reject(e)
+    }
+  })
+}
+
+export function getGuardHistoryList(rid, date) {
+  return new Promise((resolve, reject)=>{
+    try {
+      http.get('http://guard.joi-club.cn/history?room='+rid+'&date='+date, res => {
+        let dd = ''
+        res.on('data', chunk => {
+          dd += chunk
+        })
+        res.on('end', () => {
+          let resp = JSON.parse(dd.toString())
+          if (resp.Code === 0) {
+            resolve(resp.Data)
           } else {
             reject(resp)
           }

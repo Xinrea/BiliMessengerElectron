@@ -28,7 +28,10 @@
             size="80"
             class="mr-3"
           >
-            <img :src="getAvatarUrl()">
+            <img
+              :src="getAvatarUrl()"
+              alt="avatar"
+            >
           </v-avatar>
         </div>
         <div
@@ -151,6 +154,7 @@ export default {
     if (this.isSet) {
       this.updateUserInfo(this.userdata['DedeUserID'])
     }
+    this.roomEditValue = this.Store.get('roomID', '21484828')
   },
   methods: {
     getAvatarUrl () {
@@ -229,14 +233,13 @@ export default {
     saveRoomID () {
       let that = this
       console.log(this.roomEditValue, this.rid)
-      this.Bilibili.getRoomInfo(this.roomEditValue, ()=>{
+      this.Bilibili.getRoomInfo(this.roomEditValue).then(()=>{
         that.$emit('updateRoomID', that.roomEditValue)
         that.roomEdit = false
         that.showSnackBar('直播间号保存成功')
-      }, ()=>{
-        that.showSnackBar('不存在的直播间，请检查是否填写正确')
+      }).catch(()=>{
+          that.showSnackBar('不存在的直播间，请检查是否填写正确')
       })
-
     },
     logout () {
       this.$emit('logout')

@@ -70,8 +70,9 @@
               class="ma-2"
               color="orange"
               text-color="white"
+              style="float: right"
             >
-              关注数：{{ userInfo.relation_info.attention }}
+              关注 {{ userInfo.relation_info.attention }}
             </v-chip>
           </div>
         </v-card-text>
@@ -150,6 +151,7 @@
       }
     },
     mounted () {
+      this.updateInfo()
     },
     methods: {
       open (link) {
@@ -167,9 +169,11 @@
               follower: [],
               timestamp: []
             }
-            data.forEach(item=>{
-              that.graph.follower.push(item.follower)
-              that.graph.timestamp.push(item.time)
+            data.forEach((item,index)=>{
+              if (index % 50 === 0) {
+                that.graph.follower.push(item.follower)
+                that.graph.timestamp.push(index)
+              }
             })
           }).catch(e=>{
             console.error(e)
