@@ -48,7 +48,10 @@
             </v-list-item-icon>
             <v-list-item-title>舰长列表</v-list-item-title>
           </v-list-item>
-          <v-list-item link>
+          <v-list-item
+            link
+            @click="RouteTo('/template')"
+          >
             <v-list-item-icon>
               <v-icon>mdi-file-outline</v-icon>
             </v-list-item-icon>
@@ -92,6 +95,7 @@
         <!-- 如果使用 vue-router -->
         <keep-alive>
           <router-view
+            v-if="$route.meta.keepAlive"
             :is-set="isSet"
             :userdata="userdata"
             :rid="rid"
@@ -100,6 +104,15 @@
             @updateRoomID="onUpdateRoomID"
           />
         </keep-alive>
+        <router-view
+          v-if="!$route.meta.keepAlive"
+          :is-set="isSet"
+          :userdata="userdata"
+          :rid="rid"
+          @login-success="onLogin"
+          @logout="onLogout"
+          @updateRoomID="onUpdateRoomID"
+        />
       </v-container>
     </v-main>
   </v-app>

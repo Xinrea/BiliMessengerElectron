@@ -54,7 +54,7 @@
         <div class="ml-auto d-flex align-center">
           <v-btn
             elevation="1"
-            :color="isSet?'error':'primary'"
+            :color="isSet?'rgb(195, 82, 82)':'primary'"
             @click="isSet?logout():openLoginDialog()"
           >
             {{ isSet ? '退出登录':'请先登录' }}
