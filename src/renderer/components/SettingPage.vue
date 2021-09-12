@@ -165,7 +165,7 @@ export default {
     },
     updateUserInfo (uid) {
       let that = this
-      this.Bilibili.getUserInfo(uid, resp=>{
+      this.Bilibili.getUserInfo(uid).then(resp=>{
         that.accountData = resp
       })
     },

@@ -1,7 +1,7 @@
 import * as https from 'https'
 import * as http from 'http'
 
-export function getUserInfo(mid, callback) {
+export function getUserInfo(mid) {
   return new Promise((resolve, reject) => {
     try {
       https.get('https://api.bilibili.com/x/space/acc/info?mid=' + mid + '&jsonp=jsonp', res => {
@@ -12,7 +12,7 @@ export function getUserInfo(mid, callback) {
         res.on('end', () => {
           let resp = JSON.parse(dd.toString())
           if (resp['code'] === 0) {
-            callback(resp['data'])
+            resolve(resp['data'])
           } else {
             reject(resp)
           }

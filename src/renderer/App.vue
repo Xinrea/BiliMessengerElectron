@@ -12,7 +12,7 @@
             BiliMessenger
           </v-list-item-title>
           <v-list-item-subtitle>
-            Bilibili舰长私信助手 @Xinrea
+            舰长私信助手
           </v-list-item-subtitle>
         </v-list-item-content>
         <v-btn
@@ -57,13 +57,19 @@
             </v-list-item-icon>
             <v-list-item-title>模板管理</v-list-item-title>
           </v-list-item>
-          <v-list-item link>
+          <v-list-item
+            link
+            @click="RouteTo('/code')"
+          >
             <v-list-item-icon>
               <v-icon>mdi-gift-outline</v-icon>
             </v-list-item-icon>
             <v-list-item-title>兑换码管理</v-list-item-title>
           </v-list-item>
-          <v-list-item link>
+          <v-list-item
+            link
+            @click="RouteTo('/message')"
+          >
             <v-list-item-icon>
               <v-icon>mdi-message-outline</v-icon>
             </v-list-item-icon>
@@ -78,7 +84,10 @@
             </v-list-item-icon>
             <v-list-item-title>设置</v-list-item-title>
           </v-list-item>
-          <v-list-item link>
+          <v-list-item
+            link
+            @click="RouteTo('/about')"
+          >
             <v-list-item-icon>
               <v-icon>mdi-information-outline</v-icon>
             </v-list-item-icon>

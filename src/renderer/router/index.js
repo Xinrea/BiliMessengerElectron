@@ -26,6 +26,22 @@ export default new Router({
       name: 'template-page',
       component: require('@/components/TemplatePage').default,
       meta: {
+        keepAlive: true
+      }
+    },
+    {
+      path: '/code',
+      name: 'code-page',
+      component: require('@/components/CodeManagePage').default,
+      meta: {
+        keepAlive: true
+      }
+    },
+    {
+      path: '/message',
+      name: 'message-page',
+      component: require('@/components/MessagePage').default,
+      meta: {
         keepAlive: false
       }
     },
@@ -33,6 +49,14 @@ export default new Router({
       path: '/setting',
       name: 'setting-page',
       component: require('@/components/SettingPage').default,
+      meta: {
+        keepAlive: true
+      }
+    },
+    {
+      path: '/about',
+      name: 'about-page',
+      component: require('@/components/AboutPage').default,
       meta: {
         keepAlive: true
       }
