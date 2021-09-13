@@ -100,27 +100,18 @@
     <!-- 根据应用组件来调整你的内容 -->
     <v-main>
       <!-- 给应用提供合适的间距 -->
-      <v-container fluid>
+      <v-container
+        fluid
+        style="height: 100%"
+      >
         <!-- 如果使用 vue-router -->
         <keep-alive>
           <router-view
             v-if="$route.meta.keepAlive"
-            :is-set="isSet"
-            :userdata="userdata"
-            :rid="rid"
-            @login-success="onLogin"
-            @logout="onLogout"
-            @updateRoomID="onUpdateRoomID"
           />
         </keep-alive>
         <router-view
           v-if="!$route.meta.keepAlive"
-          :is-set="isSet"
-          :userdata="userdata"
-          :rid="rid"
-          @login-success="onLogin"
-          @logout="onLogout"
-          @updateRoomID="onUpdateRoomID"
         />
       </v-container>
     </v-main>
@@ -136,47 +127,39 @@ export default {
       mini: false,
       overlay: true,
       dialog: true,
-      isSet: false,
-      userdata: null,
-      rid: "",
       selectedItem: 0
     }
   },
   mounted () {
-    // Loading stored data
-    console.log("Reading settings: roomID ", this.Store.get('roomID', '21484828'))
-    this.rid = this.Store.get('roomID', '21484828')
-    console.log("Reading settings: userdata ", this.Store.get('loginRaw', null))
-    this.userdata = this.Store.get('loginRaw', null)
-    this.isSet = this.userdata !== null;
   },
   methods: {
     RouteTo: function (path) {
       if (this.$route.path !== path) {
         this.$router.push(path)
       }
-    },
-    onLogin: function (params) {
-      this.isSet = true
-      this.userdata = params
-      this.Store.set('loginRaw', params)
-      console.log('login data stored')
-    },
-    onLogout: function () {
-      this.isSet = false
-      this.userdata = null
-      this.Store.delete('loginRaw')
-      console.log('login data removed')
-    },
-    onUpdateRoomID: function (roomID) {
-      this.rid = roomID
-      this.Store.set('roomID', roomID)
-      console.log(this.Store.get('roomID'))
     }
   }
 }
 </script>
 
 <style>
-/* CSS */
+::-webkit-scrollbar
+{
+  width: 5px;
+}
+
+/*定义滚动条轨道 内阴影+圆角*/
+::-webkit-scrollbar-track
+{
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.34);
+}
+
+/*定义滑块 内阴影+圆角*/
+::-webkit-scrollbar-thumb
+{
+  border-radius: 10px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);
+  background-color: rgba(141, 96, 56, 0.1);
+}
 </style>

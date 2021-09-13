@@ -1,7 +1,9 @@
 <template>
-  <v-card>
+  <v-card
+    height="100%"
+  >
     <v-toolbar>
-      总数：{{ codes.length }}
+      兑换码总数：{{ codes.length }}
       <v-spacer />
       <v-dialog
         v-model="addDialog"
@@ -25,7 +27,7 @@
             添加兑换码
           </v-card-title>
           <v-card-subtitle>
-            一行一个，爱发电可批量生成并复制粘贴于此
+            一行一个，空行会被自动移除；爱发电可批量生成并复制粘贴于此
           </v-card-subtitle>
           <v-card-text>
             <v-textarea
@@ -55,6 +57,7 @@
     </v-toolbar>
     <v-list
       subheader
+      style="bottom: 0; top: 60px; left: 0; right: 0; position: absolute"
     >
       <v-list-item-group
         :key="itemGroup"
@@ -100,6 +103,9 @@ export default {
   methods: {
     loadCodes() {
       this.codes = this.Store.get('codes', [])
+      this.Store.onDidChange('codes', v=>{
+        this.codes = v
+      })
     },
     deleteCodes() {
       console.log('Delete code', this.codeSelected)

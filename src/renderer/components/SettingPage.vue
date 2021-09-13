@@ -35,12 +35,12 @@
           </v-avatar>
         </div>
         <div
-          v-if="isSet"
+          v-if="loginResponse"
           class="d-flex flex-column align-start justify-center"
         >
           <div
             class="text-body-1 font-weight-bold pointer"
-            @click="openURL('https://space.bilibili.com/'+userdata['DedeUserID'])"
+            @click="openURL('https://space.bilibili.com/'+loginResponse['DedeUserID'])"
           >
             {{ accountData['name'] }}
           </div>
@@ -54,36 +54,44 @@
         <div class="ml-auto d-flex align-center">
           <v-btn
             elevation="1"
-            :color="isSet?'rgb(195, 82, 82)':'primary'"
-            @click="isSet?logout():openLoginDialog()"
+            :color="loginResponse?'rgb(195, 82, 82)':'primary'"
+            @click="loginResponse?logout():openLoginDialog()"
           >
-            {{ isSet ? '退出登录':'请先登录' }}
+            {{ loginResponse ? '退出登录':'请先登录' }}
           </v-btn>
         </div>
       </v-card-text>
     </v-card>
     <v-card class="mt-3">
       <v-card-text>
-        <v-sheet>
-          <v-text-field
-            v-model="roomEditValue"
-            label="直播间号"
-            :rules="rules"
-            hide-details="auto"
-            @change="roomEdit = true"
-          >
-            <template #append-outer>
-              <v-btn
-                plain
-                color="primary"
-                :disabled="!roomEdit"
-                @click="saveRoomID"
-              >
-                保存
-              </v-btn>
-            </template>
-          </v-text-field>
-        </v-sheet>
+        <v-text-field
+          v-model="roomSetting.roomID"
+          label="直播间号"
+          :rules="rules"
+          hide-details="auto"
+          @change="roomSetting.edited = true"
+        >
+          <template #append-outer>
+            <v-btn
+              plain
+              color="primary"
+              :disabled="!roomSetting.edited"
+              @click="saveRoomID"
+            >
+              保存
+            </v-btn>
+          </template>
+        </v-text-field>
+        <v-text-field
+          v-model="setting.sendInterval"
+          label="发送间隔（毫秒）"
+          @change="saveSetting"
+        />
+        <v-switch
+          v-model="setting.debugMode"
+          label="调试模式"
+          @change="saveSetting"
+        />
       </v-card-text>
     </v-card>
     <v-snackbar
@@ -101,20 +109,6 @@ import * as https from 'https'
 
 export default {
   name: 'SettingPage',
-  props: {
-    isSet: {
-      type: Boolean,
-      default: false
-    },
-    userdata: {
-      type: Object,
-      default: null
-    },
-    rid: {
-      type: String,
-      default: "2"
-    }
-  },
   data () {
     return {
       dialog: false,
@@ -129,10 +123,17 @@ export default {
         value => !!value || '必须填写直播间号',
         value => Number.isInteger(Number(value)) || "直播间号必须为数字",
       ],
-      roomEditValue: "21484828",
-      roomEdit: false,
       snackBar: false,
-      snackBarText: ""
+      snackBarText: "",
+      setting: {
+        debugMode: false,
+        sendInterval: 1000
+      },
+      roomSetting: {
+        roomID: '21484828',
+        edited: false
+      },
+      loginResponse: null
     }
   },
   watch: {
@@ -140,25 +141,22 @@ export default {
       if (val === false) {
         clearInterval(this.qrTimer)
       }
-    },
-    isSet (val) {
-      if (val === true) {
-        this.updateUserInfo(this.userdata['DedeUserID'])
-      }
-    },
-    rid (val) {
-      this.roomEditValue = val
     }
   },
   mounted () {
-    if (this.isSet) {
-      this.updateUserInfo(this.userdata['DedeUserID'])
+    this.loginResponse = this.Store.get('loginResponse', null)
+    this.roomSetting.roomID = this.Store.get('roomID', '21484828')
+    this.setting = this.Store.get('setting', {
+      debugMode: false,
+      sendInterval: 1000
+    })
+    if (this.loginResponse !== null) {
+      this.updateUserInfo(this.loginResponse['DedeUserID'])
     }
-    this.roomEditValue = this.Store.get('roomID', '21484828')
   },
   methods: {
     getAvatarUrl () {
-      if (!this.isSet) {
+      if (this.loginResponse == null) {
         return 'static/noface.jpg'
       }
       return this.accountData['face']
@@ -207,7 +205,8 @@ export default {
                   let querystring = require('querystring')
                   let url = resp['data']['url']
                   let params = querystring.parse(url.split('?')[1])
-                  that.$emit('login-success', params)
+                  that.loginResponse = params
+                  that.Store.set('loginResponse', that.loginResponse)
                   that.updateUserInfo(params['DedeUserID'])
                 } else {
                   if (resp['data'] === -4) {
@@ -232,21 +231,23 @@ export default {
     },
     saveRoomID () {
       let that = this
-      console.log(this.roomEditValue, this.rid)
-      this.Bilibili.getRoomInfo(this.roomEditValue).then(()=>{
-        that.$emit('updateRoomID', that.roomEditValue)
-        that.roomEdit = false
+      this.Bilibili.getRoomInfo(this.roomSetting.roomID).then(()=>{
+        that.roomSetting.edited = false
+        that.Store.set('roomID', that.roomSetting.roomID)
         that.showSnackBar('直播间号保存成功')
       }).catch(()=>{
           that.showSnackBar('不存在的直播间，请检查是否填写正确')
       })
     },
     logout () {
-      this.$emit('logout')
+      this.Store.delete('loginResponse')
     },
     showSnackBar(text) {
         this.snackBarText = text
         this.snackBar = true
+    },
+    saveSetting() {
+      this.Store.set('setting', this.setting)
     }
   }
 }

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <setting-alert-page v-if="!isSet" />
+    <setting-alert-page v-if="roomID === ''" />
     <div
       v-else
       class="d-flex justify-start"
@@ -31,7 +31,7 @@
                     icon
                     width="80"
                     height="80"
-                    @click="open('https://live.bilibili.com/'+rid)"
+                    @click="open('https://live.bilibili.com/'+roomID)"
                   >
                     <v-icon
                       :class="{ 'show-btns': hover }"
@@ -106,20 +106,6 @@
   export default {
     name: 'SummaryPage',
     components: { SettingAlertPage },
-    props: {
-      isSet:{
-        type: Boolean,
-        default: false
-      },
-      userdata:{
-        type: Object,
-        default: null
-      },
-      rid: {
-        type: String,
-        default: '21484828'
-      }
-    },
     data: function () {
       return {
         graph: {
@@ -142,16 +128,22 @@
           relation_info: {
             attention: 0
           }
-        }
-      }
-    },
-    watch: {
-      rid() {
-        this.updateInfo()
+        },
+        roomID: ''
       }
     },
     mounted () {
-      this.updateInfo()
+      this.roomID = this.Store.get('roomID', '21484828')
+      if (this.roomID !== '') {
+        this.updateInfo()
+      }
+      this.Store.onDidChange('roomID', ((newValue) => {
+        console.log('Room Changed', newValue)
+        this.roomID = newValue
+        if (newValue !== '') {
+          this.updateInfo()
+        }
+      }))
     },
     methods: {
       open (link) {
@@ -159,12 +151,12 @@
       },
       updateInfo() {
         let that = this
-        this.Bilibili.getRoomInfo(this.rid).then(data=>{
-          console.log(that.rid, data)
+        this.Bilibili.getRoomInfo(this.roomID).then(data=>{
+          console.log(that.roomID, data)
           that.roomInfo = data['room_info']
           that.userInfo = data['anchor_info']
           that.Bilibili.getFollowerHistory(that.roomInfo.uid).then(data=>{
-            console.log(that.roomInfo.uid, data)
+            console.log('Get History',that.roomInfo.uid, data)
             that.graph = {
               follower: [],
               timestamp: []

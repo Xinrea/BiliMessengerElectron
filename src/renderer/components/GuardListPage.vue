@@ -1,6 +1,9 @@
 <template>
-  <setting-alert-page v-if="!isSet" />
-  <v-card v-else>
+  <setting-alert-page v-if="roomID === ''" />
+  <v-card
+    v-else
+    height="100%"
+  >
     <v-card-title>
       编辑列表
       <v-spacer />
@@ -134,60 +137,69 @@
     <v-divider />
     <v-list
       subheader
+      style="bottom: 0; top: 140px; left: 0; right: 0; position: absolute"
     >
-      <v-list-item-group
-        :key="itemGroup"
-        v-model="selecttedItem"
-        multiple
+      <v-virtual-scroll
+        :bench="5"
+        :items="guards"
+        class="mb-1"
+        item-height="64"
       >
-        <v-list-item
-          v-for="guard in guards"
-          :key="guard.uid"
-        >
-          <v-list-item-avatar>
-            <img
-              :src="guard.face"
-              alt="avatar"
-            >
-          </v-list-item-avatar>
-          <v-list-item-content
-            class="ml-3"
+        <template #default="{ item }">
+          <v-list-item-group
+            v-model="selecttedItem"
+            multiple
           >
-            <v-list-item-title>
-              <v-chip
-                class="mr-2"
-                :color="guard.is_alive === 1 ? 'blue' : 'orange'"
-                label
-                outlined
-                small
+            <v-list-item
+              :key="item.uid"
+              :value="item.uid"
+            >
+              <v-list-item-avatar>
+                <img
+                  :src="item.face"
+                  alt="avatar"
+                >
+              </v-list-item-avatar>
+              <v-list-item-content
+                class="ml-3"
               >
-                {{ guardLevelToString(guard.guard_level) }}
-              </v-chip>
-              {{ guard.username }}
-            </v-list-item-title>
-          </v-list-item-content>
-          <v-list-item-action>
-            <v-btn
-              icon
-              @click="open('https://space.bilibili.com/'+guard.uid)"
-            >
-              <v-icon color="grey lighten-1">
-                mdi-information
-              </v-icon>
-            </v-btn>
-          </v-list-item-action>
-          <v-list-item-action>
-            <v-btn
-              icon
-              @click="open('https://message.bilibili.com/#/whisper/mid'+guard.uid)"
-            >
-              <v-icon color="grey lighten-1">
-                mdi-send
-              </v-icon>
-            </v-btn>
-          </v-list-item-action>
-        </v-list-item>
-      </v-list-item-group>
+                <v-list-item-title>
+                  <v-chip
+                    class="mr-2"
+                    :color="item.is_alive === 1 ? 'blue' : 'orange'"
+                    label
+                    outlined
+                    small
+                  >
+                    {{ guardLevelToString(item.guard_level) }}
+                  </v-chip>
+                  {{ item.username }}
+                </v-list-item-title>
+              </v-list-item-content>
+              <v-list-item-action>
+                <v-btn
+                  icon
+                  @click="open('https://space.bilibili.com/'+item.uid)"
+                >
+                  <v-icon color="grey lighten-1">
+                    mdi-information
+                  </v-icon>
+                </v-btn>
+              </v-list-item-action>
+              <v-list-item-action>
+                <v-btn
+                  icon
+                  @click="open('https://message.bilibili.com/#/whisper/mid'+item.uid)"
+                >
+                  <v-icon color="grey lighten-1">
+                    mdi-send
+                  </v-icon>
+                </v-btn>
+              </v-list-item-action>
+            </v-list-item>
+          </v-list-item-group>
+        </template>
+      </v-virtual-scroll>
     </v-list>
     <v-snackbar
       v-model="snackBar.m"
@@ -215,27 +227,12 @@ import SettingAlertPage from './SettingAlertPage'
 export default {
   name: 'GuardListPage',
   components: { SettingAlertPage },
-  props: {
-    isSet: {
-      type: Boolean,
-      default: false
-    },
-    userdata: {
-      type: Object,
-      default: null
-    },
-    rid: {
-      type: String,
-      default: '21484828'
-    }
-  },
   data() {
     return {
       snackBar: {
         m: false,
         t: ''
       },
-      itemGroup: 0,
       selecttedItem: [],
       guards: [{
         face: './static/noface.jpg',
@@ -265,18 +262,23 @@ export default {
       addUser: {
         uid: "",
         title: ""
-      }
-    }
-  },
-  watch:{
-    rid() {
-      this.updateList()
+      },
+      roomID: ''
     }
   },
   mounted () {
+    this.roomID = this.Store.get('roomID', '')
+    this.guards = this.Store.get('guards', [])
+    this.Store.onDidChange('guards', newValue => {
+      this.guards = newValue
+    })
+    this.Store.onDidChange('roomID', newValue => {
+      this.roomID = newValue
+    })
     this.selecttedItem = []
-    this.updateList()
     this.datePick.currentDate = this.currentDate()
+    this.updateCalendar()
+    this.updateStatistic()
   },
   methods: {
     open (link) {
@@ -301,14 +303,17 @@ export default {
         }
       }
     },
-    updateList() {
+    updateCalendar() {
       let that = this
       let dateNow = this.currentDate()
       this.datePick.allowedList = [dateNow]
-      this.Bilibili.getGuardValidDate(this.rid).then(d=>{
+      this.Bilibili.getGuardValidDate(this.roomID).then(d=>{
         console.log('Update DatePicker')
         that.datePick.allowedList.push(...d)
       })
+    },
+    updateList() {
+      this.updateCalendar()
       this.updateLastGuardList()
     },
     updateStatistic() {
@@ -336,7 +341,6 @@ export default {
         }
       })
       this.Store.set('guards', this.guards)
-      this.forceUpdate()
     },
     dateAllowed(v) {
       return this.datePick.allowedList.includes(v)
@@ -353,7 +357,7 @@ export default {
       let dateNow = this.currentDate()
       if (date !== dateNow) {
         // Get History Data From Server
-        that.Bilibili.getGuardHistoryList(this.rid, this.datePick.currentDate).then(d=>{
+        that.Bilibili.getGuardHistoryList(this.roomID, this.datePick.currentDate).then(d=>{
           that.guards = []
           let newGuards = []
           d.forEach(g=>{
@@ -380,8 +384,8 @@ export default {
     },
     updateLastGuardList() {
       let that = this
-      this.Bilibili.getRoomInfo(this.rid).then(d=>{
-        console.log('Get uid from rid', that.rid, d.room_info.uid)
+      this.Bilibili.getRoomInfo(this.roomID).then(d=>{
+        console.log('Get uid from rid', that.roomID, d.room_info.uid)
         that.Bilibili.getGuardList(d.room_info.uid, 1, 30).then(r=>{
           console.log('GetGuardList')
           that.guards = []
@@ -439,8 +443,8 @@ export default {
     },
     deleteGuards() {
       console.log('Delete Guard', this.selecttedItem)
-      let newGuards = this.guards.filter((v,index)=>{
-        return !this.selecttedItem.includes(index)
+      let newGuards = this.guards.filter((v)=>{
+        return !this.selecttedItem.includes(v.uid)
       })
       this.guards = newGuards
       this.selecttedItem = []
@@ -450,9 +454,6 @@ export default {
       this.guards = []
       this.selecttedItem = []
       this.updateStatistic()
-    },
-    forceUpdate() {
-      this.itemGroup += 1
     },
     showSnackBar(text) {
       this.snackBar.t = text

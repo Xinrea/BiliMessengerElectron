@@ -42,7 +42,7 @@ export default new Router({
       name: 'message-page',
       component: require('@/components/MessagePage').default,
       meta: {
-        keepAlive: false
+        keepAlive: true
       }
     },
     {
