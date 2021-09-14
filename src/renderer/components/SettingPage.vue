@@ -121,7 +121,6 @@ export default {
       snackBar: false,
       snackBarText: "",
       setting: {
-        debugMode: false,
         sendInterval: 1000
       },
       roomSetting: {
@@ -142,7 +141,6 @@ export default {
     this.loginResponse = this.Store.get('loginResponse', null)
     this.roomSetting.roomID = this.Store.get('roomID', '21484828')
     this.setting = this.Store.get('setting', {
-      debugMode: false,
       sendInterval: 1000
     })
     if (this.loginResponse !== null) {
@@ -235,7 +233,8 @@ export default {
       })
     },
     logout () {
-      this.Store.delete('loginResponse')
+      this.Store.set('loginResponse', null)
+      this.loginResponse = null
     },
     showSnackBar(text) {
         this.snackBarText = text
