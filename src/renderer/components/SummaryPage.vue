@@ -50,7 +50,7 @@
                 {{ roomInfo.title }}
               </div>
               <v-divider />
-              <div class="mt-3 d-flex">
+              <div class="mt-3 d-flex align-center">
                 <v-avatar
                   color="dark"
                   size="40"
