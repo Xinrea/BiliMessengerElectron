@@ -19,12 +19,17 @@
     "postinstall": "npm run lint:fix"
   },
   "build": {
-    "productName": "bilimessenger",
+    "productName": "Bilibili舰长私信助手",
     "appId": "cn.joi-club.bilimessenger",
     "directories": {
       "output": "build"
     },
-    "files": [
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files":[
       "dist/electron/**/*"
     ],
     "dmg": {
@@ -46,7 +51,7 @@
       "icon": "build/icons/icon.icns"
     },
     "win": {
-      "icon": "build/icons/icon.ico"
+      "icon": "build/icons/box.png"
     },
     "linux": {
       "icon": "build/icons"
