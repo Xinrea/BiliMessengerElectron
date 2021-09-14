@@ -190,17 +190,15 @@ if (process.env.NODE_ENV !== 'production') {
  * Adjust rendererConfig for production settings
  */
 if (process.env.NODE_ENV === 'production') {
-  rendererConfig.devtool = ''
-
   rendererConfig.plugins.push(
     new MinifyPlugin(),
-    new CopyWebpackPlugin([
+    new CopyWebpackPlugin({
+      patterns:[
       {
         from: path.join(__dirname, '../static'),
-        to: path.join(__dirname, '../dist/electron/static'),
-        ignore: ['.*']
+        to: path.join(__dirname, '../dist/electron/static')
       }
-    ]),
+    ]}),
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': '"production"'
     }),

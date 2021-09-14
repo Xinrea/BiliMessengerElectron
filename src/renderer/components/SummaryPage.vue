@@ -83,18 +83,21 @@
       >
         <v-card-text>
           <v-sheet
-            color="rgba(0,0,0,.15)"
-            class="rounded-lg"
+            color="rgba(0,0,0,0.3)"
+            elevation="2"
+            class="rounded-lg pa-2"
           >
-            <v-sparkline
-              :labels="graph.timestamp"
-              :value="graph.follower"
-              stroke-linecap="round"
-              line-width="1.2"
-              color="orange"
-              smooth
+            <line-chart
+              :chart-data="chartData"
+              :options="chartOption"
             />
           </v-sheet>
+          <v-row class="ma-1">
+            <v-spacer />
+            <div class="text-body-2">
+              *图表数据来源自 vtbs.moe
+            </div>
+          </v-row>
         </v-card-text>
       </v-card>
     </div>
@@ -103,14 +106,25 @@
 
 <script>
   import SettingAlertPage from './SettingAlertPage.vue'
+  import LineChart from './LineChart'
+  import moment from 'moment'
   export default {
     name: 'SummaryPage',
-    components: { SettingAlertPage },
+    components: {LineChart, SettingAlertPage },
     data: function () {
       return {
-        graph: {
-          follower: [1],
-          timestamp: [100]
+        chartOption: {
+          aspectRatio: 2,
+          backgroundColor: 'rgba(239,239,235,0.84)',
+          color: 'rgba(255,255,255,0.77)'
+        },
+        chartData: {
+          labels: [],
+          datasets:[{
+            label: '粉丝数',
+            data: [],
+            borderColor: 'orange'
+          }]
         },
         roomInfo: {
           cover: '',
@@ -129,7 +143,7 @@
             attention: 0
           }
         },
-        roomID: ''
+        roomID: '',
       }
     },
     mounted () {
@@ -155,18 +169,40 @@
           console.log(that.roomID, data)
           that.roomInfo = data['room_info']
           that.userInfo = data['anchor_info']
+          let chartData = {
+            labels: [],
+            datasets:[{
+              label: '粉丝数',
+              data: [],
+              borderColor: 'orange',
+              color: 'white'
+            }]
+          }
           that.Bilibili.getFollowerHistory(that.roomInfo.uid).then(data=>{
+            data.reverse()
             console.log('Get History',that.roomInfo.uid, data)
-            that.graph = {
-              follower: [],
-              timestamp: []
-            }
-            data.forEach((item,index)=>{
-              if (index % 50 === 0) {
-                that.graph.follower.push(item.follower)
-                that.graph.timestamp.push(index)
+            let beginDay = moment.unix(data[0].time/1000)
+            let dayCount = 60
+            for(let i = 0; i < data.length; i++) {
+              let item = data[i]
+              let current = moment.unix(item.time/1000)
+              if (current.format('YYYY-MM-DD') === beginDay.format('YYYY-MM-DD') || current.isBefore(beginDay, 'day')) {
+                chartData.datasets[0].data.push(item.follower)
+                chartData.labels.push(current.format('MM-DD'))
+                if (current.isBefore(beginDay, 'day')) {
+                  beginDay = current
+                } else {
+                  beginDay.subtract(1,'days')
+                }
+                dayCount -= 1
+                if (dayCount < 0) {
+                  break
+                }
               }
-            })
+            }
+            chartData.labels.reverse()
+            chartData.datasets[0].data.reverse()
+            that.chartData = chartData
           }).catch(e=>{
             console.error(e)
           })

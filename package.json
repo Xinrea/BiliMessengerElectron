@@ -54,10 +54,13 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
+    "chart.js": "^3.5.1",
     "electron-store": "^8.0.0",
+    "moment": "^2.29.1",
     "qrcode": "^1.4.4",
     "querystring": "^0.2.1",
     "vue": "^2.5.16",
+    "vue-chartjs": "^3.5.1",
     "vue-electron": "^1.0.6",
     "vue-router": "^3.0.1",
     "vuetify": "^2.5.8",

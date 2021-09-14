@@ -267,7 +267,7 @@ export default {
     }
   },
   mounted () {
-    this.roomID = this.Store.get('roomID', '')
+    this.roomID = this.Store.get('roomID', '21484828')
     this.guards = this.Store.get('guards', [])
     this.Store.onDidChange('guards', newValue => {
       this.guards = newValue
