@@ -1,6 +1,6 @@
 {
   "name": "bilimessenger",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "author": "Xinrea <s11s@vip.qq.com>",
   "description": "tools for bilibili message management",
   "license": null,
@@ -53,6 +53,7 @@
     }
   },
   "dependencies": {
+    "@electron/remote": "^1.2.1",
     "axios": "^0.21.1",
     "chart.js": "^3.5.1",
     "electron-store": "^8.0.0",

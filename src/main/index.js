@@ -12,6 +12,8 @@ if (process.env.NODE_ENV !== 'development') {
     .replace(/\\/g, '\\\\')
 }
 
+require('@electron/remote/main').initialize()
+
 let mainWindow
 const winURL =
   process.env.NODE_ENV === 'development'
@@ -23,12 +25,13 @@ function createWindow () {
    * Initial window options
    */
   mainWindow = new BrowserWindow({
-    height: 563,
+    height: 720,
     useContentSize: true,
-    width: 1000,
+    width: 1280,
     webPreferences: {
       webSecurity: false,
       nodeIntegration: true,
+      enableRemoteModule: true,
       contextIsolation: false
     }
   })

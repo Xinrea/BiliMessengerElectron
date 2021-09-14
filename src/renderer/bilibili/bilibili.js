@@ -80,6 +80,29 @@ export function getFollowerHistory(uid) {
   })
 }
 
+//https://api.vtbs.moe/v2/bulkGuard/61639371
+export function getGuardHistory(uid) {
+  return new Promise((resolve, reject)=>{
+    try {
+      https.get('https://api.vtbs.moe/v2/bulkGuard/' + uid, res => {
+        let dd = ''
+        res.on('data', chunk => {
+          dd += chunk
+        })
+        res.on('end', () => {
+          let resp = JSON.parse(dd.toString())
+          resolve(resp)
+        })
+        res.on('error', err => {
+          reject(err)
+        })
+      })
+    }catch (e) {
+      reject(e)
+    }
+  })
+}
+
 export function getGuardList(uid, page, page_size) {
   return new Promise((resolve, reject)=>{
     try {

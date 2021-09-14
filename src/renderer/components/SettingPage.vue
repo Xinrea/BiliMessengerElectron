@@ -87,11 +87,6 @@
           label="发送间隔（毫秒）"
           @change="saveSetting"
         />
-        <v-switch
-          v-model="setting.debugMode"
-          label="调试模式"
-          @change="saveSetting"
-        />
       </v-card-text>
     </v-card>
     <v-snackbar
