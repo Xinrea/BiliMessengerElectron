@@ -54,33 +54,44 @@
         删除
         {{ codeSelected.length }}
       </v-btn>
+      <v-btn
+        small
+        class="ml-1"
+        color="#902E2E"
+        @click="emptyCodes"
+      >
+        <v-icon>
+          mdi-delete-empty
+        </v-icon>
+        清空
+      </v-btn>
     </v-toolbar>
     <v-list
       subheader
       style="bottom: 0; top: 60px; left: 0; right: 0; position: absolute"
     >
-      <v-list-item-group
-        :key="itemGroup"
-        v-model="codeSelected"
-        multiple
+      <v-virtual-scroll
+        :bench="5"
+        :items="codes"
+        class="mb-1"
+        item-height="48"
       >
-        <v-list-item v-if="codes.length === 0">
-          没有可用的兑换码
-        </v-list-item>
-        <v-list-item
-          v-for="code in codes"
-          :key="code"
-        >
-          <template #default="{ active }">
-            <v-list-item-action>
-              <v-checkbox :input-value="active" />
-            </v-list-item-action>
-            <v-list-item-content>
-              {{ code }}
-            </v-list-item-content>
-          </template>
-        </v-list-item>
-      </v-list-item-group>
+        <template #default="{ item }">
+          <v-list-item-group
+            v-model="codeSelected"
+            multiple
+          >
+            <v-list-item
+              :key="item"
+              :value="item"
+            >
+              <v-list-item-content>
+                {{ item }}
+              </v-list-item-content>
+            </v-list-item>
+          </v-list-item-group>
+        </template>
+      </v-virtual-scroll>
     </v-list>
   </v-card>
 </template>
@@ -90,7 +101,6 @@ export default {
   name: 'CodeManagePage',
   data() {
     return {
-      itemGroup: 0,
       codeImport: '',
       codes: ['code1', 'code2'],
       codeSelected: [],
@@ -110,25 +120,26 @@ export default {
     deleteCodes() {
       console.log('Delete code', this.codeSelected)
       for (let index = this.codes.length-1; index >= 0; index--) {
-        if (this.codeSelected.includes(index)) {
+        if (this.codeSelected.includes(this.codes[index])) {
           this.codes.splice(index,1)
         }
       }
       this.codeSelected = []
       this.Store.set('codes', this.codes)
-      this.forceUpdate()
     },
     importCodes() {
       let newCodes = this.codeImport.split('\n').filter(c=>{
         return c !== ''
       })
       this.codes.push(...newCodes)
+      this.codes = Array.from(new Set(this.codes))
       this.addDialog = false
       this.Store.set('codes', this.codes)
-      this.forceUpdate()
     },
-    forceUpdate() {
-      this.itemGroup += 1
+    emptyCodes() {
+      this.codes = []
+      this.codeSelected = []
+      this.Store.set('codes', [])
     }
   }
 }
