@@ -44,6 +44,7 @@
 
 <script>
 import {app} from '@electron/remote'
+
 export default {
   name: 'AboutPage',
   methods: {

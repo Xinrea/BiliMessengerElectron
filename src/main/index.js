@@ -36,6 +36,8 @@ function createWindow () {
     }
   })
 
+  require("@electron/remote/main").enable(mainWindow.webContents)
+
   mainWindow.loadURL(winURL)
 
   mainWindow.on('closed', () => {
