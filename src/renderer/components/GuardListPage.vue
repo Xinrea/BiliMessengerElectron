@@ -132,6 +132,36 @@
           </v-icon>
           清空
         </v-btn>
+        <v-menu offset-y>
+          <template #activator="{ on, attrs }">
+            <v-btn
+              small
+              class="ml-1"
+              color="#4FB02B"
+              v-bind="attrs"
+              v-on="on"
+            >
+              <v-icon>
+                mdi-export
+              </v-icon>
+              导出
+            </v-btn>
+          </template>
+          <v-list>
+            <v-list-item
+              link
+              @click="exportTXT"
+            >
+              <v-list-item-title>导出为 txt 文件</v-list-item-title>
+            </v-list-item>
+            <v-list-item
+              link 
+              @click="exportCSV"
+            >
+              <v-list-item-title>导出为 csv 文件</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
       </v-row>
     </v-card-text>
     <v-divider />
@@ -223,6 +253,7 @@
 
 <script>
 import SettingAlertPage from './SettingAlertPage'
+import {dialog} from '@electron/remote'
 
 export default {
   name: 'GuardListPage',
@@ -458,6 +489,40 @@ export default {
     showSnackBar(text) {
       this.snackBar.t = text
       this.snackBar.m = true
+    },
+    exportTXT() {
+      console.log('Export TXT file')
+      let output = `舰队总数：${this.guards.length}\n`
+      for (let i = 0; i < this.guards.length; i++) {
+        output += `${this.guardLevelToString(this.guards[i].guard_level)} ${this.guards[i].uid} ${this.guards[i].username}\n`
+      }
+      let file = dialog.showSaveDialogSync({
+        title: '导出为 TXT 文件',
+        defaultPath: `${this.roomID}-${this.datePick.currentDate}.txt`,
+        filters: [{name: 'txt', extensions: ['txt']}]
+      })
+      if (file !== undefined) {
+        console.log(file)
+        const fs = require('fs');
+        fs.writeFileSync(file, output, 'utf-8')
+      }
+    },
+    exportCSV() {
+      console.log('Export CSV file')
+      let output = ``
+      for (let i = 0; i < this.guards.length; i++) {
+        output += `${this.guardLevelToString(this.guards[i].guard_level)},${this.guards[i].uid},${this.guards[i].username}\n`
+      }
+      let file = dialog.showSaveDialogSync({
+        title: '导出为 CSV 文件',
+        defaultPath: `${this.roomID}-${this.datePick.currentDate}.csv`,
+        filters: [{name: 'csv', extensions: ['csv']}]
+      })
+      if (file !== undefined) {
+        console.log(file)
+        const fs = require('fs');
+        fs.writeFileSync(file, output, 'utf-8')
+      }
     }
   }
 }
