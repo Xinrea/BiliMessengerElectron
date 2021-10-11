@@ -504,7 +504,7 @@ export default {
       if (file !== undefined) {
         console.log(file)
         const fs = require('fs');
-        fs.writeFileSync(file, output, 'utf-8')
+        fs.writeFileSync(file, output, 'ANSI')
       }
     },
     exportCSV() {
@@ -521,7 +521,7 @@ export default {
       if (file !== undefined) {
         console.log(file)
         const fs = require('fs');
-        fs.writeFileSync(file, output, 'utf-8')
+        fs.writeFileSync(file, output, 'ANSI')
       }
     }
   }
