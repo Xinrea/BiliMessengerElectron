@@ -496,16 +496,17 @@ export default {
       for (let i = 0; i < this.guards.length; i++) {
         output += `${this.guardLevelToString(this.guards[i].guard_level)} ${this.guards[i].uid} ${this.guards[i].username}\n`
       }
-      let file = dialog.showSaveDialogSync({
+      dialog.showSaveDialog({
         title: '导出为 TXT 文件',
         defaultPath: `${this.roomID}-${this.datePick.currentDate}.txt`,
         filters: [{name: 'txt', extensions: ['txt']}]
+      }).then(res=>{
+        if (!res.canceled) {
+          console.log(res.filePath)
+          const fs = require('fs');
+          fs.writeFileSync(res.filePath, output, 'utf-8')
+        }
       })
-      if (file !== undefined) {
-        console.log(file)
-        const fs = require('fs');
-        fs.writeFileSync(file, output, 'ANSI')
-      }
     },
     exportCSV() {
       console.log('Export CSV file')
@@ -513,16 +514,17 @@ export default {
       for (let i = 0; i < this.guards.length; i++) {
         output += `${this.guardLevelToString(this.guards[i].guard_level)},${this.guards[i].uid},${this.guards[i].username}\n`
       }
-      let file = dialog.showSaveDialogSync({
+      dialog.showSaveDialog({
         title: '导出为 CSV 文件',
         defaultPath: `${this.roomID}-${this.datePick.currentDate}.csv`,
         filters: [{name: 'csv', extensions: ['csv']}]
+      }).then(res=>{
+        if (!res.canceled) {
+          console.log(res.filePath)
+          const fs = require('fs');
+          fs.writeFileSync(res.filePath, `\ufeff${output}`, 'utf-8')
+        }
       })
-      if (file !== undefined) {
-        console.log(file)
-        const fs = require('fs');
-        fs.writeFileSync(file, output, 'ANSI')
-      }
     }
   }
 }
