@@ -39,7 +39,7 @@
                           size="50"
                           color="rgb(0,0,0,0)"
                         >
-                          mdi-play
+                          {{ Mdi.mdiPlay }}
                         </v-icon>
                       </v-btn>
                     </div>

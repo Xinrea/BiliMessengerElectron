@@ -3,6 +3,7 @@ import axios from 'axios'
 import Store from 'electron-store'
 import vuetify from './plugins/vuetify'
 import * as bilibili from './bilibili/bilibili'
+import * as mdi from '@mdi/js'
 
 import App from './App'
 import router from './router'
@@ -14,6 +15,7 @@ Vue.config.productionTip = false
 
 Vue.prototype.Store = new Store();
 Vue.prototype.Bilibili = bilibili;
+Vue.prototype.Mdi = mdi
 
 /* eslint-disable no-new */
 new Vue({

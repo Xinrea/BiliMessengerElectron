@@ -19,7 +19,7 @@
           icon
           @click.stop="mini = !mini"
         >
-          <v-icon>mdi-chevron-left</v-icon>
+          <v-icon>{{ Mdi.mdiChevronLeft }}</v-icon>
         </v-btn>
       </v-list-item>
       <v-divider />
@@ -35,7 +35,7 @@
             @click="RouteTo('/')"
           >
             <v-list-item-icon>
-              <v-icon>mdi-home-circle-outline</v-icon>
+              <v-icon>{{ Mdi.mdiHomeCircleOutline }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>总览</v-list-item-title>
           </v-list-item>
@@ -44,7 +44,7 @@
             @click="RouteTo('/guard_list')"
           >
             <v-list-item-icon>
-              <v-icon>mdi-format-list-bulleted-square</v-icon>
+              <v-icon>{{ Mdi.mdiFormatListBulletedSquare }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>舰长列表</v-list-item-title>
           </v-list-item>
@@ -53,7 +53,7 @@
             @click="RouteTo('/template')"
           >
             <v-list-item-icon>
-              <v-icon>mdi-file-outline</v-icon>
+              <v-icon>{{ Mdi.mdiFileOutline }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>模板管理</v-list-item-title>
           </v-list-item>
@@ -62,7 +62,7 @@
             @click="RouteTo('/code')"
           >
             <v-list-item-icon>
-              <v-icon>mdi-gift-outline</v-icon>
+              <v-icon>{{ Mdi.mdiGiftOutline }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>兑换码管理</v-list-item-title>
           </v-list-item>
@@ -71,7 +71,7 @@
             @click="RouteTo('/message')"
           >
             <v-list-item-icon>
-              <v-icon>mdi-message-outline</v-icon>
+              <v-icon>{{ Mdi.mdiMessageOutline }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>私信群发</v-list-item-title>
           </v-list-item>
@@ -80,7 +80,7 @@
             @click="RouteTo('/setting')"
           >
             <v-list-item-icon>
-              <v-icon>mdi-cog-outline</v-icon>
+              <v-icon>{{ Mdi.mdiCogOutline }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>设置</v-list-item-title>
           </v-list-item>
@@ -89,7 +89,7 @@
             @click="RouteTo('/about')"
           >
             <v-list-item-icon>
-              <v-icon>mdi-information-outline</v-icon>
+              <v-icon>{{ Mdi.mdiInformationOutline }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>关于</v-list-item-title>
           </v-list-item>

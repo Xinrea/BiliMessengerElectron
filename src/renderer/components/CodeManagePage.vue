@@ -17,7 +17,7 @@
             v-on="on"
           >
             <v-icon>
-              mdi-plus-box
+              {{ Mdi.mdiPlusBox }}
             </v-icon>
             导入
           </v-btn>
@@ -49,7 +49,7 @@
         @click="deleteCodes"
       >
         <v-icon>
-          mdi-delete
+          {{ Mdi.mdiDelete }}
         </v-icon>
         删除
         {{ codeSelected.length }}
@@ -61,7 +61,7 @@
         @click="emptyCodes"
       >
         <v-icon>
-          mdi-delete-empty
+          {{ Mdi.mdiDeleteEmpty }}
         </v-icon>
         清空
       </v-btn>

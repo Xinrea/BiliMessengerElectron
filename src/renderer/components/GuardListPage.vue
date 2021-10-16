@@ -51,7 +51,7 @@
               v-on="on"
             >
               <v-icon>
-                mdi-calendar
+                {{ Mdi.mdiCalendar }}
               </v-icon>
               <span class="ml-1">历史数据</span>
             </v-btn>
@@ -79,7 +79,7 @@
               v-on="on"
             >
               <v-icon>
-                mdi-plus-box
+                {{ Mdi.mdiPlusBox }}
               </v-icon>
               手动添加
             </v-btn>
@@ -116,7 +116,7 @@
           @click="deleteGuards"
         >
           <v-icon>
-            mdi-delete
+            {{ Mdi.mdiDelete }}
           </v-icon>
           删除
           {{ selecttedItem.length }}
@@ -128,7 +128,7 @@
           @click="emptyGuards"
         >
           <v-icon>
-            mdi-delete-empty
+            {{ Mdi.mdiDeleteEmpty }}
           </v-icon>
           清空
         </v-btn>
@@ -142,7 +142,7 @@
               v-on="on"
             >
               <v-icon>
-                mdi-export
+                {{ Mdi.mdiExport }}
               </v-icon>
               导出
             </v-btn>
@@ -212,7 +212,7 @@
                   @click="open('https://space.bilibili.com/'+item.uid)"
                 >
                   <v-icon color="grey lighten-1">
-                    mdi-information
+                    {{ Mdi.mdiInformation }}
                   </v-icon>
                 </v-btn>
               </v-list-item-action>
@@ -222,7 +222,7 @@
                   @click="open('https://message.bilibili.com/#/whisper/mid'+item.uid)"
                 >
                   <v-icon color="grey lighten-1">
-                    mdi-send
+                    {{ Mdi.mdiSend }}
                   </v-icon>
                 </v-btn>
               </v-list-item-action>

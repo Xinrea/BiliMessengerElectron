@@ -73,7 +73,7 @@
             <v-icon
               v-if="checkBeforeSend()"
             >
-              mdi-alert-circle
+              {{ Mdi.mdiAlertCircle }}
             </v-icon>
             {{ errorMessage }}
           </span>
