@@ -8,7 +8,7 @@
         <v-col
           cols="5"
         >
-          <v-card>
+          <v-card height="100%">
             <v-card-text>
               <v-hover v-slot="{ hover }">
                 <v-img
@@ -83,6 +83,7 @@
           <v-card
             elevation="2"
             class="pa-4"
+            height="100%"
           >
             <line-chart
               :chart-data="guardData"
