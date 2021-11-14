@@ -81,7 +81,7 @@
               <v-icon>
                 {{ Mdi.mdiPlusBox }}
               </v-icon>
-              手动添加
+              单个添加
             </v-btn>
           </template>
           <v-card>
@@ -111,26 +111,14 @@
         </v-dialog>
         <v-btn
           small
+          color="green"
           class="ml-1"
-          color="error"
-          @click="deleteGuards"
+          @click="importFromFile"
         >
           <v-icon>
-            {{ Mdi.mdiDelete }}
+            {{ Mdi.mdiImport }}
           </v-icon>
-          删除
-          {{ selecttedItem.length }}
-        </v-btn>
-        <v-btn
-          small
-          class="ml-1"
-          color="#902E2E"
-          @click="emptyGuards"
-        >
-          <v-icon>
-            {{ Mdi.mdiDeleteEmpty }}
-          </v-icon>
-          清空
+          导入列表
         </v-btn>
         <v-menu offset-y>
           <template #activator="{ on, attrs }">
@@ -144,7 +132,7 @@
               <v-icon>
                 {{ Mdi.mdiExport }}
               </v-icon>
-              导出
+              导出列表
             </v-btn>
           </template>
           <v-list>
@@ -162,6 +150,29 @@
             </v-list-item>
           </v-list>
         </v-menu>
+        <v-btn
+          small
+          class="ml-1"
+          color="error"
+          @click="deleteGuards"
+        >
+          <v-icon>
+            {{ Mdi.mdiDelete }}
+          </v-icon>
+          删除
+          {{ selecttedItem.length }}
+        </v-btn>
+        <v-btn
+          small
+          class="ml-1"
+          color="error"
+          @click="emptyGuards"
+        >
+          <v-icon>
+            {{ Mdi.mdiDeleteEmpty }}
+          </v-icon>
+          清空
+        </v-btn>
       </v-row>
     </v-card-text>
     <v-divider />
@@ -450,7 +461,7 @@ export default {
       this.addDialog = false
       for (let i = 0; i < this.guards.length; i++) {
         if (this.guards[i].uid.toString() === that.addUser.uid) {
-          that.showSnackBar('手动添加的用户已存在')
+          that.showSnackBar(`用户${that.addUser.uid}已存在`)
           return
         }
       }
@@ -503,8 +514,69 @@ export default {
       }).then(res=>{
         if (!res.canceled) {
           console.log(res.filePath)
-          const fs = require('fs');
+          const fs = require('fs')
           fs.writeFileSync(res.filePath, output, 'utf-8')
+        }
+      })
+    },
+    importFromFile() {
+      let that = this
+      dialog.showOpenDialog({
+        title: '选择文件',
+        filters: [{name: 'list', extensions: ['txt', 'csv']}]
+      }).then(res=>{
+        if (!res.canceled) {
+          console.log(res.filePaths)
+          const fs = require('fs');
+          fs.readFile(res.filePaths[0], (err, data)=>{
+            if (err != null) {
+              console.error(err)
+              return
+            }
+            const content = data.toString().split('\n')
+            console.log(content.length)
+            // Empty Current List
+            this.emptyGuards()
+            // Process Each Line
+            for (let i = 0; i < content.length; i++) {
+              const elements = res.filePaths[0][res.filePaths[0].length-1] == 't' ? content[i].split(' ') : content[i].split(',');
+              if (elements.length < 3) {
+                // Skip This Line
+                continue
+              }
+              const tag = elements[0][0] === '\ufeff' ? elements[0].substring(1) : elements[0]
+              const uid = elements[1]
+              const name = elements[2]
+              let tag_type = 4
+              switch (tag) {
+                case '舰长':
+                  tag_type = 3
+                  break
+                case '提督':
+                  tag_type = 2
+                  break
+                case '总督':
+                  tag_type = 1
+                  break
+                default:
+                  break;
+              }
+              that.guards.push({
+                face: 'static/noface.jpg',
+                username: name,
+                guard_level: tag_type,
+                is_alive: 0,
+                rank: 1,
+                ruid: 61639371,
+                uid: uid,
+                medal_info: {
+                  medal_level: 27,
+                  medal_name: "轴芯"
+                }
+              })
+            }
+            that.updateStatistic()
+          })
         }
       })
     },
