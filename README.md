@@ -4,7 +4,7 @@
 
 ![img](screenshot.png)
 
-#### Build Setup
+## Build Setup
 
 ``` bash
 # install dependencies
@@ -19,5 +19,4 @@ npm run build
 
 # lint all JS/Vue component files in `src/`
 npm run lint
-
 ```
