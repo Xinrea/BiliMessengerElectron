@@ -122,7 +122,9 @@ export default {
     this.Store.onDidChange('codes', v=>{
       this.codeList = v
     })
-    this.setting = this.Store.get('setting', null)
+    this.setting = this.Store.get('setting', {
+      sendInterval: 1000
+    })
     this.Store.onDidChange('setting', v=>{
       this.setting = v
     })
