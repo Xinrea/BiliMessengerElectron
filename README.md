@@ -20,3 +20,7 @@ npm run build
 # lint all JS/Vue component files in `src/`
 npm run lint
 ```
+
+## Thanks
+
+![JetBrains Black Box Logo logo](https://resources.jetbrains.com/storage/products/company/brand/logos/jb_square.png)
