@@ -132,7 +132,7 @@ export function getGuardList(uid, page, page_size) {
 export function getGuardValidDate(rid) {
   return new Promise((resolve, reject)=>{
     try {
-      http.get('http://guard.joi-club.cn/day?room='+rid, res => {
+      http.get('http://guard.vjoi.cn/day?room='+rid, res => {
         let dd = ''
         res.on('data', chunk => {
           dd += chunk
@@ -158,7 +158,7 @@ export function getGuardValidDate(rid) {
 export function getGuardHistoryList(rid, date) {
   return new Promise((resolve, reject)=>{
     try {
-      http.get('http://guard.joi-club.cn/history?room='+rid+'&date='+date, res => {
+      http.get('http://guard.vjoi.cn/history?room='+rid+'&date='+date, res => {
         let dd = ''
         res.on('data', chunk => {
           dd += chunk
