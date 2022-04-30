@@ -4,7 +4,7 @@
       v-model="dialog"
       width="500"
     >
-      <v-card>
+      <v-card v-if="stepScan">
         <v-card-title>扫码登录</v-card-title>
         <v-card-subtitle>{{ statusText }}</v-card-subtitle>
         <v-card-text>
@@ -12,6 +12,29 @@
             :src="qrImage"
             max-width="160px"
           />
+        </v-card-text>
+      </v-card>
+      <v-card v-else>
+        <v-card-title>直播间号设置</v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="roomSetting.roomID"
+            label="直播间号"
+            :rules="rules"
+            hide-details="auto"
+            @change="roomSetting.edited = true"
+          >
+            <template #append-outer>
+              <v-btn
+                plain
+                color="primary"
+                :disabled="!roomSetting.edited"
+                @click="saveRoomID"
+              >
+                保存
+              </v-btn>
+            </template>
+          </v-text-field>
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -107,6 +130,7 @@ export default {
   data () {
     return {
       dialog: false,
+      stepScan: true,
       qrImage: '',
       statusText: '请使用 bilibili 手机 App 扫描下方二维码',
       qrTimer: null,
@@ -194,13 +218,16 @@ export default {
                 // {"status":false,"data":-4,"message":"Can't scan~"}
                 if (resp['status'] === true) {
                   that.statusText = '登录成功'
-                  that.dialog = false
                   let querystring = require('querystring')
                   let url = resp['data']['url']
                   let params = querystring.parse(url.split('?')[1])
                   that.loginResponse = params
                   that.Store.set('loginResponse', that.loginResponse)
                   that.updateUserInfo(params['DedeUserID'])
+                  // Display Room number
+                  {
+                    that.stepScan = false
+                  }
                 } else {
                   if (resp['data'] === -4) {
                     that.statusText = '请使用 bilibili 手机 App 扫描下方二维码'
@@ -228,6 +255,8 @@ export default {
         that.roomSetting.edited = false
         that.Store.set('roomID', that.roomSetting.roomID)
         that.showSnackBar('直播间号保存成功')
+        that.dialog = false
+        that.stepScan = true
       }).catch(()=>{
           that.showSnackBar('不存在的直播间，请检查是否填写正确')
       })
