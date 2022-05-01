@@ -316,6 +316,8 @@ export default {
     })
     this.Store.onDidChange('roomID', newValue => {
       this.roomID = newValue
+      this.updateList()
+      this.updateStatistic()
     })
     this.selecttedItem = []
     this.datePick.currentDate = this.currentDate()
@@ -357,6 +359,7 @@ export default {
     updateList() {
       this.updateCalendar()
       this.updateLastGuardList()
+      this.updateStatistic()
     },
     updateStatistic() {
       let that = this

@@ -226,6 +226,7 @@ export default {
                   that.updateUserInfo(params['DedeUserID'])
                   // Display Room number
                   {
+                    that.roomSetting.edited = true
                     that.stepScan = false
                   }
                 } else {
