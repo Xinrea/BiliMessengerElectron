@@ -214,8 +214,8 @@ export default {
     prosessNext() {
       console.log('process', this.progressIndex, this.guardLength)
       if (this.progressIndex < this.guardLength) {
-        this.progressIndex += 1
         this.Bilibili.sendMessage(this.guardList[0].uid, this.Store.get('loginResponse'), this.getMessageContent()).then(r=>{
+          this.progressIndex += 1
           console.log(r)
           this.guardList.splice(0,1)
           this.Store.set('guards', this.guardList)
@@ -226,6 +226,7 @@ export default {
           setTimeout(this.prosessNext, this.setting.sendInterval)
         }).catch(e=>{
           console.error(e)
+          new Notification("私信发送失败", { body: "向"+this.guardList[0].username+"发送私信时遇到了问题："+e.message })
           this.inProgress = false
         })
       } else {
