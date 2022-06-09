@@ -562,6 +562,7 @@ export default {
                   tag_type = 1
                   break
                 default:
+                  tag_type = tag
                   break;
               }
               that.guards.push({
