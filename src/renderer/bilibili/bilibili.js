@@ -188,14 +188,14 @@ export function sendMessage(target, userData, content) {
       let options = {
         hostname: 'api.vc.bilibili.com',
         path: '/web_im/v1/web_im/send_msg',
-        port: 80,
+        port: 443,
         method: 'POST',
         headers: {
           'Content-Type':'application/x-www-form-urlencoded',
           'cookie':'SESSDATA='+userData.SESSDATA
         }
       }
-      let req = http.request(options, res => {
+      let req = https.request(options, res => {
         let dd = ''
         res.on('data', chunk => {
           dd += chunk
