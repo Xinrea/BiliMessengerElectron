@@ -101,7 +101,7 @@
     "@mdi/js": "^6.2.95",
     "ajv": "^8.6.2",
     "babel-loader": "^8.2.2",
-    "cfonts": "^2.1.2",
+    "cfonts": "^3.1.0",
     "chalk": "^4.1.2",
     "copy-webpack-plugin": "^9.0.1",
     "cross-env": "^7.0.3",
