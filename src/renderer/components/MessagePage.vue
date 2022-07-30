@@ -94,6 +94,7 @@ export default {
       templateName: '',
       guardLength: 0,
       guardList: [],
+      remainList: [],
       codeList: [],
       progressIndex: 0,
       setting: {
@@ -214,9 +215,8 @@ export default {
     prosessNext() {
       console.log('process', this.progressIndex, this.guardLength)
       if (this.progressIndex < this.guardLength) {
-        this.Bilibili.sendMessage(this.guardList[0].uid, this.Store.get('loginResponse'), this.getMessageContent()).then(r=>{
+        this.Bilibili.sendMessage(this.guardList[0].uid, this.Store.get('loginResponse'), this.getMessageContent()).then(()=>{
           this.progressIndex += 1
-          console.log(r)
           this.guardList.splice(0,1)
           this.Store.set('guards', this.guardList)
           if (this.getTemplateValue().indexOf('{code}') !== -1) {
@@ -225,12 +225,20 @@ export default {
           }
           setTimeout(this.prosessNext, this.setting.sendInterval)
         }).catch(e=>{
-          console.error(e)
-          new Notification("私信发送失败", { body: "向"+this.guardList[0].username+"发送私信时遇到了问题："+e.message })
-          this.inProgress = false
+          var currentGuard = this.guardList[0]
+          this.remainList.push(currentGuard)
+          this.progressIndex += 1
+          this.guardList.splice(0,1)
+          this.Store.set('guards', this.guardList)
+          new Notification("私信发送失败", { body: "向"+currentGuard.username+"发送私信时遇到了问题："+e.message })
+          setTimeout(this.prosessNext, this.setting.sendInterval)
         })
       } else {
+        // End of message sending
         this.inProgress = false
+        this.Store.set('guards', this.remainList)
+        new Notification("私信发送完成", { body: "共有 "+this.remainList.length+" 条发送失败"})
+        this.remainList = []
       }
     }
   }
