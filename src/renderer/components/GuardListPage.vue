@@ -53,7 +53,7 @@
               <v-icon>
                 {{ Mdi.mdiCalendar }}
               </v-icon>
-              <span class="ml-1">历史数据</span>
+              <span class="ml-1">列表快照</span>
             </v-btn>
           </template>
           <v-date-picker
@@ -64,6 +64,36 @@
             elevation="15"
             locale="zh-cn"
             @change="updateGuardHistoryList"
+          />
+        </v-menu>
+        <v-menu
+          v-model="range_menu"
+          :close-on-content-click="false"
+          offset-y
+          offset-x
+        >
+          <template #activator="{ on, attrs }">
+            <v-btn
+              small
+              color="#DE9E08"
+              class="ml-2"
+              v-bind="attrs"
+              v-on="on"
+            >
+              <v-icon>
+                {{ Mdi.mdiCalendar }}
+              </v-icon>
+              <span class="ml-1">上舰记录</span>
+            </v-btn>
+          </template>
+          <v-date-picker
+            v-model="datePick.range"
+            color="orange"
+            class="mt-4"
+            elevation="15"
+            locale="zh-cn"
+            range
+            @change="updateListFromRange"
           />
         </v-menu>
         <v-spacer />
@@ -216,6 +246,9 @@
                   </v-chip>
                   {{ item.username }}
                 </v-list-item-title>
+                <v-list-item-subtitle v-if="item.time">
+                  {{ item.time }}
+                </v-list-item-subtitle>
               </v-list-item-content>
               <v-list-item-action>
                 <v-btn
@@ -296,9 +329,11 @@ export default {
         type3: 0
       },
       menu: false,
+      range_menu: false,
       datePick: {
         currentDate: '2021-09-11',
-        allowedList:  []
+        allowedList:  [],
+        range: []
       },
       addDialog: false,
       addUser: {
@@ -458,6 +493,46 @@ export default {
         console.error(e)
       })
     },
+    updateListFromRange() {
+      let that = this
+      let loginResponse = this.Store.get('loginResponse', null)
+      if (loginResponse === null) {
+        return
+      }
+      let range = this.datePick.range.sort((a,b)=>{
+          const da = new Date(a)
+          const db = new Date(b)
+          return da.getTime() - db.getTime()
+        })
+      console.log(range)
+      this.Bilibili.getReceivedGuardsByPeriod(loginResponse, range[0], range[1]).then((res)=>{
+        let guards = []
+        for (let g of res) {
+          guards.push({
+            face: './static/noface.jpg',
+            username: g.uname,
+            guard_level: g.gift_name,
+            is_alive: 0,
+            rank: 1,
+            ruid: 61639371,
+            uid: g.uid,
+            medal_info: {
+              medal_level: 27,
+              medal_name: "轴芯"
+            },
+            time: g.time
+          })
+        }
+        guards = guards.sort((a,b)=>{
+          const da = new Date(a)
+          const db = new Date(b)
+          return da.getTime() - db.getTime()
+        })
+        that.guards = guards
+        console.log('Update List From Range', that.guards)
+        this.updateStatistic()
+      })
+    },
     addGuard() {
       let that = this
       console.log('Add Guard', this.addUser)
@@ -508,7 +583,10 @@ export default {
       console.log('Export TXT file')
       let output = `舰队总数：${this.guards.length}\n`
       for (let i = 0; i < this.guards.length; i++) {
-        output += `${this.guardLevelToString(this.guards[i].guard_level)} ${this.guards[i].uid} ${this.guards[i].username}\n`
+        if (this.guards[i].time) {
+          output += `${this.guardLevelToString(this.guards[i].guard_level)} ${this.guards[i].uid} ${this.guards[i].username} ${this.guards[i].time.replace(' ', 'T')}\n`
+        }
+        else output += `${this.guardLevelToString(this.guards[i].guard_level)} ${this.guards[i].uid} ${this.guards[i].username}\n`
       }
       dialog.showSaveDialog({
         title: '导出为 TXT 文件',
@@ -565,7 +643,7 @@ export default {
                   tag_type = tag
                   break;
               }
-              that.guards.push({
+              let ng = {
                 face: 'static/noface.jpg',
                 username: name,
                 guard_level: tag_type,
@@ -577,7 +655,11 @@ export default {
                   medal_level: 27,
                   medal_name: "轴芯"
                 }
-              })
+              }
+              if (elements.length > 3) {
+                ng.time = elements[3].replace('T', ' ')
+              }
+              that.guards.push(ng)
             }
             that.updateStatistic()
           })
@@ -588,7 +670,11 @@ export default {
       console.log('Export CSV file')
       let output = ``
       for (let i = 0; i < this.guards.length; i++) {
-        output += `${this.guardLevelToString(this.guards[i].guard_level)},${this.guards[i].uid},${this.guards[i].username}\n`
+        if (this.guards[i].time) {
+          output += `${this.guardLevelToString(this.guards[i].guard_level)},${this.guards[i].uid},${this.guards[i].username},${this.guards[i].time.replace(' ', 'T')}\n`
+        } else {
+          output += `${this.guardLevelToString(this.guards[i].guard_level)},${this.guards[i].uid},${this.guards[i].username}\n`
+        }
       }
       dialog.showSaveDialog({
         title: '导出为 CSV 文件',

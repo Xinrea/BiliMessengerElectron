@@ -247,3 +247,74 @@ function guid() {
     return v.toString(16);
   });
 }
+
+function getReceivedGifts(userData, gift_id, begin_time) {
+  return new Promise((resolve, reject)=>{
+    try {
+      let options = {
+        hostname: 'api.live.bilibili.com',
+        path: '/xlive/revenue/v1/giftStream/getReceivedGiftStreamNextList?limit=20000&gift_id='+gift_id.toString()+'&begin_time='+begin_time,
+        port: 443,
+        method: 'GET',
+        headers: {
+          'cookie':'SESSDATA='+userData.SESSDATA
+        }
+      }
+      let req = https.request(options, res => {
+        let dd = ''
+        res.on('data', chunk => {
+          dd += chunk
+        })
+        res.on('end', () => {
+          let resp = JSON.parse(dd.toString())
+          if (resp.code === 0) {
+            resolve(resp.data)
+          } else {
+            reject(resp)
+          }
+        })
+        res.on('error', err => {
+          reject(err)
+        })
+      })
+      req.end()
+    }catch (e) {
+      reject(e)
+    }
+  })
+}
+
+function getReceivedGuards(userData, begin_time) {
+  return new Promise((resolve)=>{
+    let guards = []
+    let type_list = [10001, 10002, 10003]
+    let promises = []
+    for (let t of type_list) {
+      promises.push(getReceivedGifts(userData, t, begin_time))
+    }
+    Promise.all(promises).then(res => {
+      for (let r of res) {
+        guards = guards.concat(r.list)
+      }
+      resolve(guards)
+    })
+  })
+}
+
+export function getReceivedGuardsByPeriod(userData, begin_time, end_time) {
+  return new Promise((resolve)=>{
+    let begin = new Date(begin_time)
+    let end = new Date(end_time)
+    let promises = []
+    for (; begin < end; begin.setDate(begin.getDate() + 1)) {
+      promises.push(getReceivedGuards(userData, begin.toISOString().split('T')[0]))
+    }
+    Promise.all(promises).then(res => {
+      let guards = []
+      for (let r of res) {
+        guards = guards.concat(r)
+      }
+      resolve(guards)
+    })
+  })
+}
