@@ -33,7 +33,8 @@
       </v-chip>
     </v-card-title>
     <v-card-subtitle>
-      该列表内的用户将会收到群发私信
+      该列表内的用户将会收到群发私信<br>
+      列表可生成自某日的 <b>直播间舰长列表快照</b> 或生成自某时间段的 <b>上舰记录（未去重）</b> PS.只能查看工具当前登录账号的上舰记录
     </v-card-subtitle>
     <v-card-text>
       <v-row class="ma-0">
@@ -208,7 +209,7 @@
     <v-divider />
     <v-list
       subheader
-      style="bottom: 0; top: 140px; left: 0; right: 0; position: absolute"
+      style="bottom: 0; top: 200px; left: 0; right: 0; position: absolute"
     >
       <v-virtual-scroll
         :bench="5"
@@ -531,6 +532,11 @@ export default {
         that.guards = guards
         console.log('Update List From Range', that.guards)
         this.updateStatistic()
+      }).catch(e=>{
+        console.error(e)
+        new Notification("上舰记录获取失败", {
+          body: e
+        })
       })
     },
     addGuard() {

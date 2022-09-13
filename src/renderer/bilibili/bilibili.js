@@ -285,7 +285,7 @@ function getReceivedGifts(userData, gift_id, begin_time) {
 }
 
 function getReceivedGuards(userData, begin_time) {
-  return new Promise((resolve)=>{
+  return new Promise((resolve, reject)=>{
     let guards = []
     let type_list = [10001, 10002, 10003]
     let promises = []
@@ -297,12 +297,14 @@ function getReceivedGuards(userData, begin_time) {
         guards = guards.concat(r.list)
       }
       resolve(guards)
+    }).catch(err => {
+      reject(err)
     })
   })
 }
 
 export function getReceivedGuardsByPeriod(userData, begin_time, end_time) {
-  return new Promise((resolve)=>{
+  return new Promise((resolve, reject)=>{
     let begin = new Date(begin_time)
     let end = new Date(end_time)
     let promises = []
@@ -315,6 +317,8 @@ export function getReceivedGuardsByPeriod(userData, begin_time, end_time) {
         guards = guards.concat(r)
       }
       resolve(guards)
+    }).catch(err => {
+      reject(err)
     })
   })
 }
