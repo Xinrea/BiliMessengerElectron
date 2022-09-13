@@ -306,7 +306,7 @@ export function getReceivedGuardsByPeriod(userData, begin_time, end_time) {
     let begin = new Date(begin_time)
     let end = new Date(end_time)
     let promises = []
-    for (; begin < end; begin.setDate(begin.getDate() + 1)) {
+    for (; begin <= end; begin.setDate(begin.getDate() + 1)) {
       promises.push(getReceivedGuards(userData, begin.toISOString().split('T')[0]))
     }
     Promise.all(promises).then(res => {
