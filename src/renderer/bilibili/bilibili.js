@@ -2,6 +2,55 @@ import * as https from 'https'
 import * as http from 'http'
 import querystring from 'querystring'
 
+// DedeUserID: "475210"
+// DedeUserID__ckMd5: "09d3a3f731db734c"
+// Expires: "15551000"
+// SESSDATA: "fa962628,1678811159,2e097*91"
+
+function cookieString(userData) {
+  return "SESSDATA="+userData.SESSDATA+"; DedeUserID="+ userData.DedeUserID+"; DedeUserID_ckMd5="+userData.DedeUserID__ckMd5
+}
+
+export function getUserInfoBySearch(userData, username) {
+  return new Promise((resolve, reject)=>{
+    try {
+      let options = {
+        hostname: 'api.bilibili.com',
+        path: "/x/web-interface/search/type?keyword="+encodeURIComponent(username)+"&page=1&search_type=bili_user&order=totalrank&pagesize=5",
+        port: 443,
+        method: 'GET',
+        headers: {
+          'cookie': cookieString(userData)
+        }
+      }
+      let req = https.request(options, res => {
+        let dd = ''
+        res.on('data', chunk => {
+          dd += chunk
+        })
+        res.on('end', () => {
+          let resp = JSON.parse(dd.toString())
+          if (resp.code === 0) {
+            if (resp.data.result.length > 0 && resp.data.result[0].uname == username) {
+              resolve(resp.data.result[0])
+            } else {
+              reject("no matched result")
+            }
+          } else {
+            reject(resp)
+          }
+        })
+        res.on('error', err => {
+          reject(err)
+        })
+      })
+      req.end()
+    }catch (e) {
+      reject(e)
+    }
+  })
+}
+
 export function getUserInfo(userData, mid) {
   return new Promise((resolve, reject) => {
     try {
@@ -18,7 +67,7 @@ export function getUserInfo(userData, mid) {
           "sec-fetch-site": "none",
           "sec-fetch-user": "?1",
           "upgrade-insecure-requests": "1",
-          'cookie':'SESSDATA='+userData.SESSDATA
+          'cookie': cookieString(userData)
         },
         "body": null,
         "method": "GET"
@@ -206,7 +255,7 @@ export function sendMessage(target, userData, content) {
         method: 'POST',
         headers: {
           'Content-Type':'application/x-www-form-urlencoded',
-          'cookie':'SESSDATA='+userData.SESSDATA
+          'cookie':cookieString(userData)
         }
       }
       let req = https.request(options, res => {
@@ -271,7 +320,7 @@ function getReceivedGifts(userData, gift_id, begin_time) {
         port: 443,
         method: 'GET',
         headers: {
-          'cookie':'SESSDATA='+userData.SESSDATA
+          'cookie': cookieString(userData)
         }
       }
       let req = https.request(options, res => {
