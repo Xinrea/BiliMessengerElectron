@@ -248,6 +248,7 @@
               >
                 <v-list-item-title>
                   <v-chip
+                    v-if="item.guard_level !== ''"
                     class="mr-2"
                     :color="item.is_alive === 1 ? 'blue' : 'orange'"
                     label
