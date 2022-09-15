@@ -590,7 +590,7 @@ export default {
             }
           }
           that.guards.unshift({
-            face: d.upic,
+            face: "https:"+d.upic,
             username: d.uname,
             guard_level: that.addUser.title,
             is_alive: 0,
