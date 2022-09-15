@@ -173,14 +173,14 @@ export default {
   },
   methods: {
     getAvatarUrl () {
-      if (this.loginResponse == null) {
+      if (this.loginResponse == null || this.accountData['face'] == null) {
         return 'static/noface.jpg'
       }
       return this.accountData['face']
     },
     updateUserInfo (uid) {
       let that = this
-      this.Bilibili.getUserInfo(uid).then(resp=>{
+      this.Bilibili.getUserInfo(this.loginResponse, uid).then(resp=>{
         that.accountData = resp
       })
     },
