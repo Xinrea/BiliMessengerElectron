@@ -120,12 +120,23 @@
               添加用户
             </v-card-title>
             <v-card-subtitle>
-              手动添加额外用户，称呼为“总督/提督/舰长”或自定义
+              <br>手动添加额外用户，默认使用UID，可选用用户名添加模式；<br>称呼为“总督/提督/舰长”或自定义
             </v-card-subtitle>
             <v-card-text>
+              <v-switch
+                v-model="addUser.mode"
+                label="用户名添加"
+                inset
+              />
               <v-text-field
-                v-model="addUser.uid"
+                v-if="!addUser.mode"
+                v-model="addUser.keyword"
                 label="UID"
+              />
+              <v-text-field
+                v-else
+                v-model="addUser.keyword"
+                label="用户名"
               />
               <v-text-field
                 v-model="addUser.title"
@@ -237,6 +248,7 @@
               >
                 <v-list-item-title>
                   <v-chip
+                    v-if="item.guard_level !== ''"
                     class="mr-2"
                     :color="item.is_alive === 1 ? 'blue' : 'orange'"
                     label
@@ -338,7 +350,8 @@ export default {
       },
       addDialog: false,
       addUser: {
-        uid: "",
+        mode: false,
+        keyword: "",
         title: ""
       },
       roomID: ''
@@ -541,31 +554,83 @@ export default {
     },
     addGuard() {
       let that = this
+      let loginResponse = this.Store.get('loginResponse', null)
       console.log('Add Guard', this.addUser)
       this.addDialog = false
-      for (let i = 0; i < this.guards.length; i++) {
-        if (this.guards[i].uid.toString() === that.addUser.uid) {
-          that.showSnackBar(`用户${that.addUser.uid}已存在`)
+      if (this.addUser.keyword == '') {
+          that.showSnackBar(`请输入UID或用户名`)
           return
-        }
       }
-      this.Bilibili.getUserInfo(this.addUser.uid).then(d=>{
-        console.log(d)
-        that.guards.unshift({
-          face: d.face,
-          username: d.name,
-          guard_level: that.addUser.title,
-          is_alive: 0,
-          rank: 1,
-          ruid: 61639371,
-          uid: d.mid,
-          medal_info: {
-            medal_level: 27,
-            medal_name: "轴芯"
+      if (this.addUser.mode) {
+        // Username
+        console.log("Search with username")
+        this.Bilibili.getUserInfoBySearch(loginResponse, this.addUser.keyword).then(d=>{
+          console.log(d)
+          // face_nft: 0
+          // face_nft_type: 0
+          // fans: 251
+          // gender: 1
+          // hit_columns: ['uname']
+          // is_live: 0
+          // is_senior_member: 0
+          // is_upuser: 1
+          // level: 6
+          // mid: 475210
+          // official_verify: {type: 127, desc: ''}
+          // res: (3) [{…}, {…}, {…}]
+          // room_id: 843610
+          // type: "bili_user"
+          // uname: "Xinrea"
+          // upic: "//i2.hdslb.com/bfs/face/36e5fa47a770fef9ad64db390ef8059b5ec0ecab.jpg"
+          // usign: "好好放个假"
+          // verify_info: ""
+          for (let i = 0; i < that.guards.length; i++) {
+            if (that.guards[i].uid === d.mid) {
+              that.showSnackBar(`用户${that.addUser.keyword}已存在`)
+              return
+            }
           }
+          that.guards.unshift({
+            face: "https:"+d.upic,
+            username: d.uname,
+            guard_level: that.addUser.title,
+            is_alive: 0,
+            rank: 1,
+            ruid: 61639371,
+            uid: d.mid,
+            medal_info: {
+              medal_level: 27,
+              medal_name: "轴芯"
+            }
+          })
+          that.updateStatistic()
         })
-        that.updateStatistic()
-      })
+      } else {
+        // UID
+        for (let i = 0; i < this.guards.length; i++) {
+          if (this.guards[i].uid.toString() === that.addUser.keyword) {
+            that.showSnackBar(`用户${that.addUser.keyword}已存在`)
+            return
+          }
+        }
+        this.Bilibili.getUserInfo(loginResponse, this.addUser.keyword).then(d=>{
+          console.log(d)
+          that.guards.unshift({
+            face: d.face,
+            username: d.name,
+            guard_level: that.addUser.title,
+            is_alive: 0,
+            rank: 1,
+            ruid: 61639371,
+            uid: d.mid,
+            medal_info: {
+              medal_level: 27,
+              medal_name: "轴芯"
+            }
+          })
+          that.updateStatistic()
+        })
+      }
     },
     deleteGuards() {
       console.log('Delete Guard', this.selecttedItem)
