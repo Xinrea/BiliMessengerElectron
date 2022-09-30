@@ -1,6 +1,7 @@
 'use strict'
 
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
+const https = require('https')
 
 /**
  * Set `__static` path to static files in production
@@ -80,7 +81,50 @@ autoUpdater.on('update-downloaded', () => {
   autoUpdater.quitAndInstall()
 })
 
-app.on('ready', () => {
-  if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdates()
-})
  */
+
+app.on('ready', () => {
+  console.log("Start checking update")
+  checkUpdateFromGithubAPI()
+})
+
+function checkUpdateFromGithubAPI() {
+  const options = {
+    hostname: 'api.github.com',
+    port: 443,
+    path: '/repos/xinrea/BiliMessengerElectron/releases/latest',
+    method: 'GET',
+    headers: {
+      'User-Agent': 'request'
+    }
+  }
+  const req = https.request(options, (res) => {
+    let data = ''
+    res.on('data', (d) => {
+      data += d
+    })
+    res.on('end', () => {
+      let json = JSON.parse(data)
+      let version = json.tag_name
+      console.log('latest version:', version, 'current version:', app.getVersion())
+      if (version !== 'v'+app.getVersion()) {
+        console.log('Update available')
+        dialog.showMessageBox(mainWindow, {
+          type: 'info',
+          title: '更新',
+          message: '发现新版本 '+version+'，是否前往下载？\n'+json.body,
+          buttons: ['是', '否']
+        }).then((result) => {
+          if (result.response === 0) {
+            console.log("Update now")
+            require('openurl').open(json.html_url)
+          }
+        })
+      }
+    })
+  })
+  req.on('error', (e) => {
+    console.error(e)
+  })
+  req.end()
+}
