@@ -1,12 +1,12 @@
 {
   "name": "bilimessenger",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "author": "Xinrea <s11s@vip.qq.com>",
   "description": "tools for bilibili message management",
   "license": "GPL-3.0",
   "main": "./dist/electron/main.js",
   "scripts": {
-    "build": "node .electron-vue/build.js && electron-builder -w --x64",
+    "build": "node .electron-vue/build.js && electron-builder -mw --x64",
     "build:dir": "node .electron-vue/build.js && electron-builder --dir",
     "build:clean": "cross-env BUILD_TARGET=clean node .electron-vue/build.js",
     "build:web": "cross-env BUILD_TARGET=web node .electron-vue/build.js",
