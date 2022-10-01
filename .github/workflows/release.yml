@@ -9,12 +9,12 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: borales/actions-yarn@v3.0.0
+        uses: actions/setup-node@v3
         with:
-          cmd: install # will run `yarn install` command
-      - uses: borales/actions-yarn@v3.0.0
-        with:
-          cmd: build # will run `yarn build` command
+          node-version: 16.15.0
+          cache: 'npm'
+      - run: npm install
+      - run: npm run build
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "dist/*.dmg,dist/*.exe,dist/*.blockmap"
