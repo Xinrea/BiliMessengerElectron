@@ -3,7 +3,7 @@ import * as http from 'http'
 import querystring from 'querystring'
 
 function cookieString(userData) {
-  return "SESSDATA="+userData.SESSDATA+"; DedeUserID="+ userData.DedeUserID+"; DedeUserID_ckMd5="+userData.DedeUserID__ckMd5
+  return "SESSDATA="+encodeURIComponent(userData.SESSDATA)+"; DedeUserID="+ userData.DedeUserID+"; DedeUserID_ckMd5="+userData.DedeUserID__ckMd5
 }
 
 export function getUserInfoBySearch(userData, username) {
@@ -48,38 +48,33 @@ export function getUserInfoBySearch(userData, username) {
 
 export function getUserInfo(userData, mid) {
   return new Promise((resolve, reject) => {
-    try {
-      fetch('https://api.bilibili.com/x/space/acc/info?mid='+mid+'&jsonp=jsonp&platform=web', {
-        "headers": {
-          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-          "accept-language": "zh-CN,zh;q=0.9",
-          "cache-control": "max-age=0",
-          "sec-ch-ua": "\"Google Chrome\";v=\"105\", \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"105\"",
-          "sec-ch-ua-mobile": "?0",
-          "sec-ch-ua-platform": "\"Windows\"",
-          "sec-fetch-dest": "document",
-          "sec-fetch-mode": "navigate",
-          "sec-fetch-site": "none",
-          "sec-fetch-user": "?1",
-          "upgrade-insecure-requests": "1",
+      let options = {
+        hostname: 'api.bilibili.com',
+        path: `/x/space/acc/info?mid=${mid}&jsonp=jsonp&platform=web`,
+        port: 443,
+        method: 'GET',
+        headers: {
           'cookie': cookieString(userData)
-        },
-        "body": null,
-        "method": "GET"
-      }).then((raw)=>{
-        raw.json().then(resp=>{
+        }
+      }
+      let req = https.request(options, res => {
+        let dd = ''
+        res.on('data', chunk => {
+          dd += chunk
+        })
+        res.on('end', () => {
+          let resp = JSON.parse(dd.toString())
           if (resp.code === 0) {
-            resolve(resp.data)
+              resolve(resp.data)
           } else {
             reject(resp)
           }
-        }).catch(e=>{
-          reject(e)
+        })
+        res.on('error', err => {
+          reject(err)
         })
       })
-    }catch (e) {
-      reject(e)
-    }
+      req.end()
   })
 }
 

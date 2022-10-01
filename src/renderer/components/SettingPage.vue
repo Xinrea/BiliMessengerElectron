@@ -182,6 +182,8 @@ export default {
       let that = this
       this.Bilibili.getUserInfo(this.loginResponse, uid).then(resp=>{
         that.accountData = resp
+      }).catch(err=>{
+        console.log(err)
       })
     },
     openLoginDialog () {

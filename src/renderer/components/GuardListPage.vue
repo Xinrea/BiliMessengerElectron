@@ -220,7 +220,7 @@
     <v-divider />
     <v-list
       subheader
-      style="bottom: 0; top: 200px; left: 0; right: 0; position: absolute"
+      style="bottom: 0; top: 162px; left: 0; right: 0; position: absolute"
     >
       <v-virtual-scroll
         :bench="5"
