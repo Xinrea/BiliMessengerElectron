@@ -171,7 +171,7 @@
       }
     },
     mounted () {
-      this.roomID = this.Store.get('roomID', '21484828')
+      this.roomID = this.Store.get('roomID', '')
       if (this.roomID !== '') {
         this.updateInfo()
       }

@@ -148,7 +148,7 @@ export default {
         sendInterval: 1000
       },
       roomSetting: {
-        roomID: '21484828',
+        roomID: '',
         edited: false
       },
       loginResponse: null
@@ -163,7 +163,7 @@ export default {
   },
   mounted () {
     this.loginResponse = this.Store.get('loginResponse', null)
-    this.roomSetting.roomID = this.Store.get('roomID', '21484828')
+    this.roomSetting.roomID = this.Store.get('roomID', '')
     this.setting = this.Store.get('setting', {
       sendInterval: 1000
     })

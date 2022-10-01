@@ -46,7 +46,7 @@
             <v-list-item-icon>
               <v-icon>{{ Mdi.mdiFormatListBulletedSquare }}</v-icon>
             </v-list-item-icon>
-            <v-list-item-title>舰长列表</v-list-item-title>
+            <v-list-item-title>目标列表</v-list-item-title>
           </v-list-item>
           <v-list-item
             link

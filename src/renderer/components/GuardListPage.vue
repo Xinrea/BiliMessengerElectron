@@ -54,7 +54,7 @@
               <v-icon>
                 {{ Mdi.mdiCalendar }}
               </v-icon>
-              <span class="ml-1">列表快照</span>
+              <span class="ml-1">舰长列表快照</span>
             </v-btn>
           </template>
           <v-date-picker
@@ -358,7 +358,7 @@ export default {
     }
   },
   mounted () {
-    this.roomID = this.Store.get('roomID', '21484828')
+    this.roomID = this.Store.get('roomID', '')
     this.guards = this.Store.get('guards', [])
     this.Store.onDidChange('guards', newValue => {
       this.guards = newValue
