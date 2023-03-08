@@ -173,7 +173,7 @@ export default {
       if (this.loginResponse == null || this.accountData['face'] == null) {
         return 'static/noface.jpg'
       }
-      return this.accountData['face']
+      return 'https:'+this.accountData['face']
     },
     updateUserInfo (uid) {
       let that = this

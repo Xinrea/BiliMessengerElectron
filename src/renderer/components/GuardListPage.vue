@@ -564,6 +564,10 @@ export default {
       if (this.addUser.mode) {
         // Username
         console.log("Search with username")
+        if (loginResponse == null) {
+          that.showSnackBar(`用户名搜索请先登录`)
+          return
+        }
         this.Bilibili.getUserInfoBySearch(loginResponse, this.addUser.keyword).then(d=>{
           console.log(d)
           // face_nft: 0
@@ -616,7 +620,7 @@ export default {
         this.Bilibili.getUserInfo(loginResponse, this.addUser.keyword).then(d=>{
           console.log(d)
           that.guards.unshift({
-            face: d.face,
+            face: 'https:'+d.face,
             username: d.uname,
             guard_level: that.addUser.title,
             is_alive: 0,

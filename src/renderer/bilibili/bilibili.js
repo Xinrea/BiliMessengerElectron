@@ -3,7 +3,10 @@ import * as http from 'http'
 import querystring from 'querystring'
 
 function cookieString(userData) {
-  return "SESSDATA="+encodeURIComponent(userData.SESSDATA)+"; DedeUserID="+ userData.DedeUserID+"; DedeUserID_ckMd5="+userData.DedeUserID__ckMd5
+  if (userData && userData.SESSDATA) {
+    return "SESSDATA="+encodeURIComponent(userData.SESSDATA)+"; DedeUserID="+ userData.DedeUserID+"; DedeUserID_ckMd5="+userData.DedeUserID__ckMd5
+  }
+  return ''
 }
 
 export function getUserInfoBySearch(userData, username) {
