@@ -48,9 +48,10 @@ export function getUserInfoBySearch(userData, username) {
 
 export function getUserInfo(userData, mid) {
   return new Promise((resolve, reject) => {
+      // https://line3-h5-mobile-api.biligame.com/game/center/h5/user/space/info?uid=475210&sdk_type=1
       let options = {
-        hostname: 'api.bilibili.com',
-        path: `/x/space/acc/info?mid=${mid}&jsonp=jsonp&platform=web`,
+        hostname: 'line3-h5-mobile-api.biligame.com',
+        path: `/game/center/h5/user/space/info?uid=${mid}&sdk_type=1`,
         port: 443,
         method: 'GET',
         headers: {

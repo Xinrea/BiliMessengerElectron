@@ -65,13 +65,10 @@
             class="text-body-1 font-weight-bold pointer"
             @click="openURL('https://space.bilibili.com/'+loginResponse['DedeUserID'])"
           >
-            {{ accountData['name'] }}
+            {{ accountData['uname'] }}
           </div>
           <div class="text-body-2">
             {{ accountData['mid'] }}
-          </div>
-          <div class="text-body-2">
-            {{ accountData['sign'] }}
           </div>
         </div>
         <div class="ml-auto d-flex align-center">

@@ -617,7 +617,7 @@ export default {
           console.log(d)
           that.guards.unshift({
             face: d.face,
-            username: d.name,
+            username: d.uname,
             guard_level: that.addUser.title,
             is_alive: 0,
             rank: 1,
