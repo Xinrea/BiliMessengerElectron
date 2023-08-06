@@ -2,6 +2,7 @@
 
 import { app, BrowserWindow, dialog } from 'electron'
 const https = require('https')
+const log = require('electron-log');
 
 /**
  * Set `__static` path to static files in production
@@ -21,7 +22,7 @@ const winURL =
     ? 'http://localhost:9080'
     : `file://${__dirname}/index.html`
 
-function createWindow () {
+function createWindow() {
   /**
    * Initial window options
    */
@@ -46,6 +47,8 @@ function createWindow () {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+
+  log.info(`Logfile path: ${log.transports.file.getFile().path}`)
 }
 
 app.on('ready', createWindow)
@@ -84,7 +87,7 @@ autoUpdater.on('update-downloaded', () => {
  */
 
 app.on('ready', () => {
-  console.log("Start checking update")
+  log.info("Start checking update")
   checkUpdateFromGithubAPI()
 })
 
@@ -106,17 +109,17 @@ function checkUpdateFromGithubAPI() {
     res.on('end', () => {
       let json = JSON.parse(data)
       let version = json.tag_name
-      console.log('latest version:', version, 'current version:', app.getVersion())
-      if (version !== 'v'+app.getVersion()) {
-        console.log('Update available')
+      log.info(`Latest version [${version}], local version [${app.getVersion()}]`)
+      if (version !== 'v' + app.getVersion()) {
+        log.info('Update available')
         dialog.showMessageBox(mainWindow, {
           type: 'info',
           title: '更新',
-          message: '发现新版本 '+version+'，是否前往下载？\n'+json.body,
+          message: '发现新版本 ' + version + '，是否前往下载？\n' + json.body,
           buttons: ['是', '否']
         }).then((result) => {
           if (result.response === 0) {
-            console.log("Update now")
+            log.info(`Update now with download url: ${json.html_url}`)
             require('openurl').open(json.html_url)
           }
         })
@@ -124,7 +127,7 @@ function checkUpdateFromGithubAPI() {
     })
   })
   req.on('error', (e) => {
-    console.error(e)
+    log.error(`获取最新版本失败: `, e)
   })
   req.end()
 }
