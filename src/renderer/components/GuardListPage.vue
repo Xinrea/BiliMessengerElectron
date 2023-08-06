@@ -98,59 +98,6 @@
           />
         </v-menu>
         <v-spacer />
-        <v-dialog
-          v-model="addDialog"
-          max-width="600"
-        >
-          <template #activator="{ on, attrs }">
-            <v-btn
-              small
-              color="green"
-              v-bind="attrs"
-              v-on="on"
-            >
-              <v-icon>
-                {{ Mdi.mdiPlusBox }}
-              </v-icon>
-              单个添加
-            </v-btn>
-          </template>
-          <v-card>
-            <v-card-title>
-              添加用户
-            </v-card-title>
-            <v-card-subtitle>
-              <br>手动添加额外用户，默认使用UID，可选用用户名添加模式；<br>称呼为“总督/提督/舰长”或自定义
-            </v-card-subtitle>
-            <v-card-text>
-              <v-switch
-                v-model="addUser.mode"
-                label="用户名添加"
-                inset
-              />
-              <v-text-field
-                v-if="!addUser.mode"
-                v-model="addUser.keyword"
-                label="UID"
-              />
-              <v-text-field
-                v-else
-                v-model="addUser.keyword"
-                label="用户名"
-              />
-              <v-text-field
-                v-model="addUser.title"
-                label="称呼"
-              />
-              <v-btn
-                color="primary"
-                @click="addGuard"
-              >
-                添加
-              </v-btn>
-            </v-card-text>
-          </v-card>
-        </v-dialog>
         <v-btn
           small
           color="green"
@@ -192,29 +139,117 @@
             </v-list-item>
           </v-list>
         </v-menu>
-        <v-btn
-          small
-          class="ml-1"
-          color="error"
-          @click="deleteGuards"
+        <v-menu
+          bottom
+          close-on-click
+          rounded
+          offset-y
         >
-          <v-icon>
-            {{ Mdi.mdiDelete }}
-          </v-icon>
-          删除
-          {{ selecttedItem.length }}
-        </v-btn>
-        <v-btn
-          small
-          class="ml-1"
-          color="error"
-          @click="emptyGuards"
-        >
-          <v-icon>
-            {{ Mdi.mdiDeleteEmpty }}
-          </v-icon>
-          清空
-        </v-btn>
+          <template #activator="{ on, attrs }">
+            <v-btn
+              small
+              color="green"
+              class="ml-1"
+              v-bind="attrs"
+              v-on="on"
+            >
+              <v-icon>
+                {{ Mdi.mdiApplicationEditOutline }}
+              </v-icon>
+              编辑列表
+            </v-btn>
+          </template>
+          <v-list dense>
+            <v-list-item link>
+              <v-dialog
+                v-model="addDialog"
+                max-width="600"
+              >
+                <template #activator="{ on, attrs }">
+                  <v-list-item-title
+                    v-bind="attrs"
+                    v-on="on"
+                  >
+                    <v-icon>
+                      {{ Mdi.mdiPlusBox }}
+                    </v-icon>
+                    单个添加
+                  </v-list-item-title>
+                </template>
+                <v-card>
+                  <v-card-title>
+                    添加用户
+                  </v-card-title>
+                  <v-card-subtitle>
+                    <br>手动添加额外用户，默认使用UID，可选用用户名添加模式；<br>称呼为“总督/提督/舰长”或自定义
+                  </v-card-subtitle>
+                  <v-card-text>
+                    <v-switch
+                      v-model="addUser.mode"
+                      label="用户名添加"
+                      inset
+                    />
+                    <v-text-field
+                      v-if="!addUser.mode"
+                      v-model="addUser.keyword"
+                      label="UID"
+                    />
+                    <v-text-field
+                      v-else
+                      v-model="addUser.keyword"
+                      label="用户名"
+                    />
+                    <v-text-field
+                      v-model="addUser.title"
+                      label="称呼"
+                    />
+                    <v-btn
+                      color="primary"
+                      @click="addGuard"
+                    >
+                      添加
+                    </v-btn>
+                  </v-card-text>
+                </v-card>
+              </v-dialog>
+            </v-list-item>
+            <v-list-item
+              link
+              @click="removeRedundant"
+            >
+              <v-list-item-title>
+                <v-icon>
+                  {{ Mdi.mdiNoteMultiple }}
+                </v-icon>
+                去重
+              </v-list-item-title>
+            </v-list-item>
+            <v-list-item
+              link
+              @click="deleteGuards"
+            >
+              <v-list-item-title>
+                <v-icon>
+                  {{ Mdi.mdiDelete }}
+                </v-icon>
+                删除
+                {{ selecttedItem.length }}
+                个已选
+              </v-list-item-title>
+            </v-list-item>
+            <v-list-item
+              link
+              @click="emptyGuards"
+            >
+              <v-list-item-title>
+                <v-icon>
+                  {{ Mdi.mdiDeleteEmpty }}
+                </v-icon>
+                清空
+              </v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
       </v-row>
     </v-card-text>
     <v-divider />
@@ -311,6 +346,7 @@
 <script>
 import SettingAlertPage from './SettingAlertPage'
 import {dialog} from '@electron/remote'
+const log = require('electron-log')
 
 export default {
   name: 'GuardListPage',
@@ -401,7 +437,7 @@ export default {
       let dateNow = this.currentDate()
       this.datePick.allowedList = [dateNow]
       this.Bilibili.getGuardValidDate(this.roomID).then(d=>{
-        console.log('Update DatePicker')
+        log.info('Update DatePicker')
         that.datePick.allowedList.push(...d)
       })
     },
@@ -446,7 +482,7 @@ export default {
       return date.getFullYear() + "-"+ (mon<10?"0"+mon:mon) + "-"+(day<10?"0"+day:day);
     },
     updateGuardHistoryList(date) {
-      console.log('Update History List',date)
+      log.info('Update History List',date)
       let that = this
       let dateNow = this.currentDate()
       if (date !== dateNow) {
@@ -479,9 +515,9 @@ export default {
     updateLastGuardList() {
       let that = this
       this.Bilibili.getRoomInfo(this.roomID).then(d=>{
-        console.log('Get uid from rid', that.roomID, d.room_info.uid)
+        log.info('Get uid from rid', that.roomID, d.room_info.uid)
         that.Bilibili.getGuardList(d.room_info.uid, 1, 30).then(r=>{
-          console.log('GetGuardList')
+          log.info('GetGuardList')
           that.guards = []
           that.guards = r.top3
           that.guards.push(...r.list)
@@ -518,7 +554,7 @@ export default {
           const db = new Date(b)
           return da.getTime() - db.getTime()
         })
-      console.log(range)
+      log.info(`Fetch data of range: [${range}]`)
       this.Bilibili.getReceivedGuardsByPeriod(loginResponse, range[0], range[1]).then((res)=>{
         let guards = []
         for (let g of res) {
@@ -543,10 +579,9 @@ export default {
           return da.getTime() - db.getTime()
         })
         that.guards = guards
-        console.log('Update List From Range', that.guards)
-        this.updateStatistic()
+        that.updateStatistic()
       }).catch(e=>{
-        console.error(e)
+        log.error(e)
         new Notification("上舰记录获取失败", {
           body: e
         })
@@ -555,7 +590,7 @@ export default {
     addGuard() {
       let that = this
       let loginResponse = this.Store.get('loginResponse', null)
-      console.log('Add Guard', this.addUser)
+      log.info('Add guard: ', this.addUser)
       this.addDialog = false
       if (this.addUser.keyword == '') {
           that.showSnackBar(`请输入UID或用户名`)
@@ -563,13 +598,13 @@ export default {
       }
       if (this.addUser.mode) {
         // Username
-        console.log("Search with username")
+        log.info("Search with username")
         if (loginResponse == null) {
           that.showSnackBar(`用户名搜索请先登录`)
           return
         }
         this.Bilibili.getUserInfoBySearch(loginResponse, this.addUser.keyword).then(d=>{
-          console.log(d)
+          log.info(d)
           // face_nft: 0
           // face_nft_type: 0
           // fans: 251
@@ -618,7 +653,7 @@ export default {
           }
         }
         this.Bilibili.getUserInfo(loginResponse, this.addUser.keyword).then(d=>{
-          console.log(d)
+          log.info(d)
           that.guards.unshift({
             face: 'https:'+d.face,
             username: d.uname,
@@ -636,8 +671,26 @@ export default {
         })
       }
     },
+    removeRedundant() {
+      const numBeforeRemove = this.guards.length
+      let newGuards = new Map()
+      this.guards.forEach(v=>{
+        if (!newGuards.has(v.uid)) {
+          newGuards.set(v.uid, v)
+          return
+        } else if (newGuards.get(v.uid).guard_level > v.guard_level) {
+          // Replace map item with lower guard_level entry
+          newGuards.set(v.uid, v)
+        }
+      })
+      this.guards = Array.from(newGuards.values())
+      this.updateStatistic()
+      const numAfterRemove = this.guards.length
+      log.info(`Remove redundant guards ${numBeforeRemove} -> ${numAfterRemove}`)
+      this.showSnackBar(`移除了 ${numBeforeRemove-numAfterRemove} 个重复项`)
+    },
     deleteGuards() {
-      console.log('Delete Guard', this.selecttedItem)
+      log.info('Delete guard', this.selecttedItem)
       let newGuards = this.guards.filter((v)=>{
         return !this.selecttedItem.includes(v.uid)
       })
@@ -655,7 +708,7 @@ export default {
       this.snackBar.m = true
     },
     exportTXT() {
-      console.log('Export TXT file')
+      log.info('Export TXT file')
       let output = `舰队总数：${this.guards.length}\n`
       for (let i = 0; i < this.guards.length; i++) {
         if (this.guards[i].time) {
@@ -669,7 +722,7 @@ export default {
         filters: [{name: 'txt', extensions: ['txt']}]
       }).then(res=>{
         if (!res.canceled) {
-          console.log(res.filePath)
+          log.info(res.filePath)
           const fs = require('fs')
           fs.writeFileSync(res.filePath, output, 'utf-8')
         }
@@ -682,7 +735,7 @@ export default {
         filters: [{name: 'list', extensions: ['txt', 'csv']}]
       }).then(res=>{
         if (!res.canceled) {
-          console.log(res.filePaths)
+          log.info(res.filePaths)
           const fs = require('fs');
           fs.readFile(res.filePaths[0], (err, data)=>{
             if (err != null) {
@@ -690,7 +743,7 @@ export default {
               return
             }
             const content = data.toString().split('\n')
-            console.log(content.length)
+            log.info(content.length)
             // Empty Current List
             this.emptyGuards()
             // Process Each Line
@@ -742,7 +795,7 @@ export default {
       })
     },
     exportCSV() {
-      console.log('Export CSV file')
+      log.info('Export CSV file')
       let output = ``
       for (let i = 0; i < this.guards.length; i++) {
         if (this.guards[i].time) {
@@ -757,7 +810,7 @@ export default {
         filters: [{name: 'csv', extensions: ['csv']}]
       }).then(res=>{
         if (!res.canceled) {
-          console.log(res.filePath)
+          log.info(res.filePath)
           const fs = require('fs');
           fs.writeFileSync(res.filePath, `\ufeff${output}`, 'utf-8')
         }

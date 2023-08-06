@@ -118,6 +118,7 @@
   import SettingAlertPage from './SettingAlertPage.vue'
   import LineChart from './LineChart'
   import moment from 'moment'
+  var log = require('electron-log')
 
   export default {
     name: 'SummaryPage',
@@ -190,7 +191,7 @@
       updateInfo() {
         let that = this
         this.Bilibili.getRoomInfo(this.roomID).then(data=>{
-          console.log(that.roomID, data)
+          log.info(`Get room info: ${this.roomID}`)
           that.roomInfo = data['room_info']
           that.userInfo = data['anchor_info']
           let chartData = {
