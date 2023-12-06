@@ -38,9 +38,7 @@
         </v-card-text>
       </v-card>
     </v-dialog>
-    <v-card
-      elevation="2"
-    >
+    <v-card elevation="2">
       <v-card-text
         class="h_info"
         style="display: flex"
@@ -63,7 +61,11 @@
         >
           <div
             class="text-body-1 font-weight-bold pointer"
-            @click="openURL('https://space.bilibili.com/'+loginResponse['DedeUserID'])"
+            @click="
+              openURL(
+                'https://space.bilibili.com/' + loginResponse['DedeUserID']
+              )
+            "
           >
             {{ accountData['uname'] }}
           </div>
@@ -74,10 +76,10 @@
         <div class="ml-auto d-flex align-center">
           <v-btn
             elevation="1"
-            :color="loginResponse?'rgb(195, 82, 82)':'primary'"
-            @click="loginResponse?logout():openLoginDialog()"
+            :color="loginResponse ? 'rgb(195, 82, 82)' : 'primary'"
+            @click="loginResponse ? logout() : openLoginDialog()"
           >
-            {{ loginResponse ? '退出登录':'请先登录' }}
+            {{ loginResponse ? '退出登录' : '请先登录' }}
           </v-btn>
         </div>
       </v-card-text>
@@ -124,7 +126,7 @@ import * as https from 'https'
 
 export default {
   name: 'SettingPage',
-  data () {
+  data() {
     return {
       dialog: false,
       stepScan: true,
@@ -135,12 +137,12 @@ export default {
         type: Object,
         default: null
       },
-      rules:[
-        value => !!value || '必须填写直播间号',
-        value => Number.isInteger(Number(value)) || "直播间号必须为数字",
+      rules: [
+        (value) => !!value || '必须填写直播间号',
+        (value) => Number.isInteger(Number(value)) || '直播间号必须为数字'
       ],
       snackBar: false,
-      snackBarText: "",
+      snackBarText: '',
       setting: {
         sendInterval: 1000
       },
@@ -152,13 +154,13 @@ export default {
     }
   },
   watch: {
-    dialog (val) {
+    dialog(val) {
       if (val === false) {
         clearInterval(this.qrTimer)
       }
     }
   },
-  mounted () {
+  mounted() {
     this.loginResponse = this.Store.get('loginResponse', null)
     this.roomSetting.roomID = this.Store.get('roomID', '')
     this.setting = this.Store.get('setting', {
@@ -169,105 +171,107 @@ export default {
     }
   },
   methods: {
-    getAvatarUrl () {
+    getAvatarUrl() {
       if (this.loginResponse == null || this.accountData['face'] == null) {
         return 'static/noface.jpg'
       }
-      return 'https:'+this.accountData['face']
+      return 'https:' + this.accountData['face']
     },
-    updateUserInfo (uid) {
+    updateUserInfo(uid) {
       let that = this
-      this.Bilibili.getUserInfo(this.loginResponse, uid).then(resp=>{
-        that.accountData = resp
-      }).catch(err=>{
-        console.log(err)
-      })
+      this.Bilibili.getUserInfo(this.loginResponse, uid)
+        .then((resp) => {
+          that.accountData = resp
+        })
+        .catch((err) => {
+          console.log(err)
+        })
     },
-    openLoginDialog () {
+    openLoginDialog() {
       let that = this
       that.statusText = '请使用 bilibili 手机 App 扫描下方二维码'
       that.dialog = true
-      https.get('https://passport.bilibili.com/qrcode/getLoginUrl', res => {
-        res.on('data', chunk => {
-          let resp = JSON.parse(chunk.toString())
-          let QRCode = require('qrcode')
-          // eslint-disable-next-line handle-callback-err
-          QRCode.toDataURL(resp['data']['url'], function (err, url) {
-            that.qrImage = url
-          })
-          // http://passport.bilibili.com/qrcode/getLoginInfo
-          let postData = 'oauthKey=' + resp['data']['oauthKey']
-          let postOptions = {
-            hostname: 'passport.bilibili.com',
-            path: '/qrcode/getLoginInfo',
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Content-Length': Buffer.byteLength(postData)
-            }
-          }
-          that.qrTimer = setInterval(() => {
-            let statusReq = https.request(postOptions, res => {
-              let dd = ''
-              res.on('data', secCheck => {
-                dd += secCheck
-              })
-              res.on('end', () => {
-                let resp = JSON.parse(dd)
-                // {"status":false,"data":-4,"message":"Can't scan~"}
-                if (resp['status'] === true) {
-                  that.statusText = '登录成功'
-                  let querystring = require('querystring')
-                  let url = resp['data']['url']
-                  let params = querystring.parse(url.split('?')[1])
-                  that.loginResponse = params
-                  that.Store.set('loginResponse', that.loginResponse)
-                  that.updateUserInfo(params['DedeUserID'])
-                  // Display Room number
-                  {
-                    that.roomSetting.edited = true
-                    that.stepScan = false
-                  }
-                } else {
-                  if (resp['data'] === -4) {
-                    that.statusText = '请使用 bilibili 手机 App 扫描下方二维码'
-                  } else if (resp['data'] === -5) {
-                    that.statusText = '请在手机上点击 确认登录'
-                  } else {
-                    that.statusText = '确认状态失败，请稍候重试'
-                  }
-                }
-              })
+      https.get(
+        'https://passport.bilibili.com/x/passport-login/web/qrcode/generate',
+        (res) => {
+          res.on('data', (chunk) => {
+            let resp = JSON.parse(chunk.toString())
+            let QRCode = require('qrcode')
+            // eslint-disable-next-line handle-callback-err
+            QRCode.toDataURL(resp['data']['url'], function (err, url) {
+              that.qrImage = url
             })
-            statusReq.write(postData)
-            statusReq.end()
-          }, 5000)
-        })
-      })
+            // https://passport.bilibili.com/x/passport-login/web/qrcode/poll
+            let qrcodeKey = resp['data']['qrcode_key']
+            let pollOptions = {
+              hostname: 'passport.bilibili.com',
+              path: '/x/passport-login/web/qrcode/poll?qrcode_key=' + qrcodeKey,
+              method: 'GET'
+            }
+            that.qrTimer = setInterval(() => {
+              let statusReq = https.request(pollOptions, (res) => {
+                let dd = ''
+                res.on('data', (secCheck) => {
+                  dd += secCheck
+                })
+                res.on('end', () => {
+                  let resp = JSON.parse(dd)
+                  if (resp['data']['code'] === 0) {
+                    that.statusText = '登录成功'
+                    let querystring = require('querystring')
+                    let url = resp['data']['url']
+                    let params = querystring.parse(url.split('?')[1])
+                    that.loginResponse = params
+                    that.Store.set('loginResponse', that.loginResponse)
+                    that.updateUserInfo(params['DedeUserID'])
+                    // Display Room number
+                    {
+                      that.roomSetting.edited = true
+                      that.stepScan = false
+                    }
+                  } else {
+                    if (resp['data']['code'] === 86101) {
+                      that.statusText =
+                        '请使用 bilibili 手机 App 扫描下方二维码'
+                    } else if (resp['data']['code'] === 86090) {
+                      that.statusText = '请在手机上点击 确认登录'
+                    } else {
+                      that.statusText = '确认状态失败，请稍候重试'
+                    }
+                  }
+                })
+              })
+              statusReq.end()
+            }, 5000)
+          })
+        }
+      )
     },
-    openURL (url) {
+    openURL(url) {
       let shell = require('electron').shell
       shell.openExternal(url)
     },
-    saveRoomID () {
+    saveRoomID() {
       let that = this
-      this.Bilibili.getRoomInfo(this.roomSetting.roomID).then(()=>{
-        that.roomSetting.edited = false
-        that.Store.set('roomID', that.roomSetting.roomID)
-        that.showSnackBar('直播间号保存成功')
-        that.dialog = false
-        that.stepScan = true
-      }).catch(()=>{
+      this.Bilibili.getRoomInfo(this.roomSetting.roomID)
+        .then(() => {
+          that.roomSetting.edited = false
+          that.Store.set('roomID', that.roomSetting.roomID)
+          that.showSnackBar('直播间号保存成功')
+          that.dialog = false
+          that.stepScan = true
+        })
+        .catch(() => {
           that.showSnackBar('不存在的直播间，请检查是否填写正确')
-      })
+        })
     },
-    logout () {
+    logout() {
       this.Store.set('loginResponse', null)
       this.loginResponse = null
     },
     showSnackBar(text) {
-        this.snackBarText = text
-        this.snackBar = true
+      this.snackBarText = text
+      this.snackBar = true
     },
     saveSetting() {
       this.Store.set('setting', this.setting)
@@ -277,9 +281,7 @@ export default {
 </script>
 
 <style>
-
 .pointer {
   cursor: pointer;
 }
-
 </style>
