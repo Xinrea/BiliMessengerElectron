@@ -240,6 +240,47 @@ export function getGuardHistoryList(rid, date) {
 
 export function sendMessage(target, userData, content) {
   console.log(target, userData, content)
+  let postData = querystring.stringify({
+    'msg[sender_uid]': userData.DedeUserID,
+    'msg[receiver_id]': target,
+    'msg[receiver_type]': '1',
+    'msg[msg_type]': '1',
+    'msg[msg_status]': '0',
+    'msg[content]': JSON.stringify({
+      content: content
+    }),
+    'msg[timestamp]': (new Date().getTime() / 1000).toFixed(0),
+    'msg[new_face_version]': '0',
+    'msg[dev_id]': GUID,
+    'from_firework': '0',
+    'build': '0',
+    'csrf_token': userData.bili_jct,
+    'csrf': userData.bili_jct
+  })
+  return handleMessage(userData, postData)
+}
+
+export function recallMessage(target, userData, msg_key) {
+  console.log(target, userData, msg_key)
+  let postData = querystring.stringify({
+    'msg[sender_uid]': userData.DedeUserID,
+    'msg[receiver_id]': target,
+    'msg[receiver_type]': '1',
+    'msg[msg_type]': '5',
+    'msg[msg_status]': '0',
+    'msg[content]': msg_key,
+    'msg[timestamp]': Date.parse(new Date()),
+    'msg[new_face_version]': '0',
+    'msg[dev_id]': GUID,
+    'from_firework': '0',
+    'build': '0',
+    'csrf_token': userData.bili_jct,
+    'csrf': userData.bili_jct
+  })
+  return handleMessage(userData, postData)
+}
+
+function handleMessage(userData, postData) {
   return new Promise((resolve, reject) => {
     try {
       let options = {
@@ -258,6 +299,8 @@ export function sendMessage(target, userData, content) {
           dd += chunk
         })
         res.on('end', () => {
+          // 将msg_key转字符串防止数字转换精度丢失
+          dd = dd.replace(/"msg_key":(\d+)/,'"msg_key": "$1"');
           let resp = JSON.parse(dd.toString())
           if (resp.code === 0) {
             resolve(resp.data)
@@ -268,23 +311,6 @@ export function sendMessage(target, userData, content) {
         res.on('error', err => {
           reject(err)
         })
-      })
-      let postData = querystring.stringify({
-        'msg[sender_uid]': userData.DedeUserID,
-        'msg[receiver_id]': target,
-        'msg[receiver_type]': '1',
-        'msg[msg_type]': '1',
-        'msg[msg_status]': '0',
-        'msg[content]': JSON.stringify({
-          content: content
-        }),
-        'msg[timestamp]': Date.parse(new Date()),
-        'msg[new_face_version]': '0',
-        'msg[dev_id]': GUID,
-        'from_firework': '0',
-        'build': '0',
-        'csrf_token': userData.bili_jct,
-        'csrf': userData.bili_jct
       })
       console.log(postData)
       req.write(postData)
