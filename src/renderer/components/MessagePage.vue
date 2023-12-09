@@ -79,6 +79,42 @@
           </span>
         </v-card-text>
       </v-card>
+      <v-card class="mt-3">
+        <v-card-title>
+          撤回消息
+        </v-card-title>
+        <v-card-text>
+          <p>
+            本次已私信用户：
+            <span
+              v-for="(g, i) in shortSentMsgList"
+              :key="i"
+              class="ml-1"
+            >
+              <v-chip
+                :color="i === 0 ? 'orange' : 'default'"
+              >
+                {{ g.username }}
+              </v-chip>
+            </span>
+            <span>
+              <v-chip
+                v-if="sentMsgList.length > 5"
+              >
+                ...
+              </v-chip>
+            </span>
+          </p>
+          <v-btn
+            :disabled="checkBeforeReCall"
+            color="primary"
+            :loading="inProgress"
+            @click="startRecalling"
+          >
+            撤回已发消息
+          </v-btn>
+        </v-card-text>
+      </v-card>
     </div>
   </div>
 </template>
@@ -96,6 +132,7 @@ export default {
       guardList: [],
       remainList: [],
       codeList: [],
+      sentMsgList: [],
       progressIndex: 0,
       setting: {
         sendInterval: 1000
@@ -103,6 +140,14 @@ export default {
       errorMessage: 'error',
       inProgress: false,
       isLogin: false
+    }
+  },
+  computed: {
+    checkBeforeReCall() {
+      return this.sentMsgList.length === 0 || this.inProgress
+    },
+    shortSentMsgList() {
+      return this.sentMsgList.slice(0, 5)
     }
   },
   mounted () {
@@ -210,13 +255,21 @@ export default {
     startSending() {
       console.log('start')
       this.inProgress = true
+      this.sentMsgList = []
       this.prosessNext()
     },
     prosessNext() {
       console.log('process', this.progressIndex, this.guardLength)
       if (this.progressIndex < this.guardLength) {
-        this.Bilibili.sendMessage(this.guardList[0].uid, this.Store.get('loginResponse'), this.getMessageContent()).then(()=>{
+        this.Bilibili.sendMessage(this.guardList[0].uid, this.Store.get('loginResponse'), this.getMessageContent()).then(res => {
           this.progressIndex += 1
+          // 保存发送消息接口返回的msg_key用于撤回
+          this.sentMsgList.push({
+            uid: this.guardList[0].uid,
+            username: this.guardList[0].username,
+            msg_key: res.msg_key,
+            timestamp: new Date().getTime()
+          })
           this.guardList.splice(0,1)
           this.Store.set('guards', this.guardList)
           if (this.getTemplateValue().indexOf('{code}') !== -1) {
@@ -238,6 +291,45 @@ export default {
         this.inProgress = false
         this.Store.set('guards', this.remainList)
         new Notification("私信发送完成", { body: "共有 "+this.remainList.length+" 条发送失败"})
+        this.remainList = []
+      }
+    },
+    startRecalling() {
+      console.log('start recall')
+      this.inProgress = true
+      this.recallNext()
+    },
+    recallNext() {
+      console.log('recall')
+      if(this.sentMsgList.length > 0) {
+        const sentMsg = this.sentMsgList.shift()
+        if (new Date().getTime() - sentMsg.timestamp > 120000) {
+          // 消息超过两分钟无法撤回 终止循环
+          new Notification("私信撤回失败", { body: "无法撤回超过两分钟的消息" })
+          this.remainList.push(sentMsg)
+          this.remainList.push(...this.sentMsgList)
+          this.sentMsgList = []
+          setTimeout(this.recallNext, this.setting.sendInterval)
+        } else {
+          // 调用撤回消息接口
+          this.Bilibili.recallMessage(sentMsg.uid, this.Store.get('loginResponse'), sentMsg.msg_key).then(() => {
+            console.log('recall', 'success', sentMsg)
+            setTimeout(this.recallNext, this.setting.sendInterval)
+          }).catch(e=>{
+            this.remainList.push(sentMsg)
+            new Notification("私信撤回失败", { body: "撤回"+sentMsg.username+"私信时遇到了问题："+e.message })
+            if (e.code === 21041) {
+              // 如果消息超过两分钟导致失败 终止循环
+              this.remainList.push(...this.sentMsgList)
+              this.sentMsgList = []
+            }
+            setTimeout(this.recallNext, this.setting.sendInterval)
+          })
+        }
+      } else {
+        // End of message recall
+        this.inProgress = false
+        new Notification("私信撤回完成", { body: "共有 "+this.remainList.length+" 条撤回失败"})
         this.remainList = []
       }
     }
