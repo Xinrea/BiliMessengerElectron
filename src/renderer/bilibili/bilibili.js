@@ -405,3 +405,40 @@ export function getReceivedGuardsByPeriod(userData, begin_time, end_time) {
     })
   })
 }
+
+// https://api.bilibili.com/x/web-interface/nav
+export function checkCookiesExpired(userData) {
+  return new Promise((resolve, reject) => {
+    try {
+      let options = {
+        hostname: 'api.bilibili.com',
+        path: '/x/web-interface/nav',
+        port: 443,
+        method: 'GET',
+        headers: {
+          'cookie': cookieString(userData)
+        }
+      }
+      let req = https.request(options, res => {
+        let dd = ''
+        res.on('data', chunk => {
+          dd += chunk
+        })
+        res.on('end', () => {
+          let resp = JSON.parse(dd.toString())
+          if (resp.code === 0) {
+            resolve(resp.data)
+          } else {
+            reject(resp)
+          }
+        })
+        res.on('error', err => {
+          reject(err)
+        })
+      })
+      req.end()
+    } catch (e) {
+      reject(e)
+    }
+  })
+}

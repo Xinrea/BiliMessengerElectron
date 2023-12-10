@@ -1,6 +1,7 @@
 'use strict'
 
 import { app, BrowserWindow, dialog } from 'electron'
+import { checkCookiesExpired } from '../renderer/bilibili/bilibili';
 const https = require('https')
 const log = require('electron-log');
 
@@ -87,8 +88,21 @@ autoUpdater.on('update-downloaded', () => {
  */
 
 app.on('ready', () => {
-  log.info("Start checking update")
+  log.info('Start checking update')
   checkUpdateFromGithubAPI()
+  // If cookies are expired, clean it as logout
+  const store = new Store()
+  const loginResponse = store.get('loginResponse', null)
+  if (loginResponse !== null) {
+    checkCookiesExpired(loginResponse).then(resp => {
+      if (!resp['isLogin']) {
+        log.info('Cookies are expired')
+        store.set('loginResponse', null)
+      } else {
+        log.info('Cookies are valid')
+      }
+    })
+  }
 })
 
 function checkUpdateFromGithubAPI() {
