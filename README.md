@@ -1,4 +1,7 @@
 # BiliMessenger
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/Xinrea/BiliMessengerElectron/release.yml)
+![GitHub release (with filter)](https://img.shields.io/github/v/release/Xinrea/BiliMessengerElectron)
+![GitHub all releases](https://img.shields.io/github/downloads/Xinrea/BiliMessengerElectron/total)
 
 > Bilibili 舰长私信群发助手
 
