@@ -5,6 +5,9 @@
 
 > Bilibili 舰长私信群发助手
 
+> [!NOTE]
+> 程序下载地址：[https://github.com/Xinrea/BiliMessengerElectron/releases](https://github.com/Xinrea/BiliMessengerElectron/releases)
+
 ![img](screenshot.png)
 
 ## Build Setup
