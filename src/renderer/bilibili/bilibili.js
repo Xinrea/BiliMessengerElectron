@@ -10,7 +10,9 @@ function cookieString(userData) {
       '; DedeUserID=' +
       userData.DedeUserID +
       '; DedeUserID_ckMd5=' +
-      userData.DedeUserID__ckMd5
+      userData.DedeUserID__ckMd5 +
+      '; bili_jct=' +
+      userData.bili_jct
     )
   }
   return ''

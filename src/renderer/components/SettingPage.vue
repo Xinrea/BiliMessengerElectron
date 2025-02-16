@@ -5,13 +5,51 @@
       width="500"
     >
       <v-card v-if="stepScan">
-        <v-card-title>扫码登录</v-card-title>
-        <v-card-subtitle>{{ statusText }}</v-card-subtitle>
+        <v-card-title>
+          {{ manualLogin.enabled ? '手动登录' : '扫码登录' }}
+        </v-card-title>
+        <v-card-subtitle v-if="!manualLogin.enabled">
+          {{ statusText }}
+        </v-card-subtitle>
         <v-card-text>
+          <v-checkbox
+            v-model="manualLogin.enabled"
+            label="手动登录"
+          ></v-checkbox>
           <v-img
+            v-if="!manualLogin.enabled"
             :src="qrImage"
             max-width="160px"
           />
+          <div v-if="manualLogin.enabled">
+            <a
+              @click="
+                $electron.shell.openExternal(
+                  'https://github.com/Xinrea/BiliMessengerElectron/wiki/%E6%89%8B%E5%8A%A8%E7%99%BB%E5%BD%95%E6%8C%87%E5%8D%97'
+                )
+              "
+            >
+              操作说明
+            </a>
+            <v-text-field
+              v-model="manualLogin.SESSDATA"
+              label="SESSDATA"
+            />
+            <v-text-field
+              v-model="manualLogin.DedeUserID"
+              label="DedeUserID"
+            />
+            <v-text-field
+              v-model="manualLogin.bili_jct"
+              label="bili_jct"
+            />
+            <v-btn
+              color="primary"
+              @click="manualLoginSubmit"
+            >
+              确认
+            </v-btn>
+          </div>
         </v-card-text>
       </v-card>
       <v-card v-else>
@@ -130,6 +168,12 @@ export default {
     return {
       dialog: false,
       stepScan: true,
+      manualLogin: {
+        enabled: false,
+        SESSDATA: '',
+        DedeUserID: '',
+        bili_jct: ''
+      },
       qrImage: '',
       statusText: '请使用 bilibili 手机 App 扫描下方二维码',
       qrTimer: null,
@@ -186,6 +230,21 @@ export default {
         .catch((err) => {
           console.log(err)
         })
+    },
+    manualLoginSubmit() {
+      let that = this
+      that.loginResponse = {
+        SESSDATA: decodeURIComponent(that.manualLogin.SESSDATA),
+        DedeUserID: parseInt(that.manualLogin.DedeUserID),
+        bili_jct: that.manualLogin.bili_jct
+      }
+      that.Store.set('loginResponse', that.loginResponse)
+      that.updateUserInfo(that.manualLogin.DedeUserID)
+      // Display Room number
+      {
+        that.roomSetting.edited = true
+        that.stepScan = false
+      }
     },
     openLoginDialog() {
       let that = this
