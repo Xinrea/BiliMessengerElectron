@@ -52,7 +52,7 @@
             <img
               :src="getAvatarUrl()"
               alt="avatar"
-            >
+            />
           </v-avatar>
         </div>
         <div
@@ -236,7 +236,9 @@ export default {
                     } else if (resp['data']['code'] === 86090) {
                       that.statusText = '请在手机上点击 确认登录'
                     } else {
-                      that.statusText = '确认状态失败，请稍候重试'
+                      that.statusText =
+                        '确认状态失败，请稍候重试:\n' +
+                        JSON.stringify(resp['data'])
                     }
                   }
                 })
