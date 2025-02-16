@@ -33,8 +33,9 @@
       </v-chip>
     </v-card-title>
     <v-card-subtitle>
-      该列表内的用户将会收到群发私信<br>
-      列表可生成自某日的 <b>直播间舰长列表快照</b> 或生成自某时间段的 <b>上舰记录（未去重）</b> PS.只能查看工具当前登录账号的上舰记录
+      该列表内的用户将会收到群发私信<br />
+      列表可生成自某日的 <b>直播间舰长列表快照</b> 或生成自某时间段的
+      <b>上舰记录（未去重）</b> PS.只能查看工具当前登录账号的上舰记录
     </v-card-subtitle>
     <v-card-text>
       <v-row class="ma-0">
@@ -132,7 +133,7 @@
               <v-list-item-title>导出为 txt 文件</v-list-item-title>
             </v-list-item>
             <v-list-item
-              link 
+              link
               @click="exportCSV"
             >
               <v-list-item-title>导出为 csv 文件</v-list-item-title>
@@ -177,11 +178,9 @@
                   </v-list-item-title>
                 </template>
                 <v-card>
-                  <v-card-title>
-                    添加用户
-                  </v-card-title>
+                  <v-card-title> 添加用户 </v-card-title>
                   <v-card-subtitle>
-                    <br>手动添加额外用户，默认使用UID，可选用用户名添加模式；<br>称呼为“总督/提督/舰长”或自定义
+                    <br />手动添加额外用户，默认使用UID，可选用用户名添加模式；<br />称呼为“总督/提督/舰长”或自定义
                   </v-card-subtitle>
                   <v-card-text>
                     <v-switch
@@ -276,11 +275,9 @@
                 <img
                   :src="item.face"
                   alt="avatar"
-                >
+                />
               </v-list-item-avatar>
-              <v-list-item-content
-                class="ml-3"
-              >
+              <v-list-item-content class="ml-3">
                 <v-list-item-title>
                   <v-chip
                     v-if="item.guard_level !== ''"
@@ -301,7 +298,7 @@
               <v-list-item-action>
                 <v-btn
                   icon
-                  @click="open('https://space.bilibili.com/'+item.uid)"
+                  @click="open('https://space.bilibili.com/' + item.uid)"
                 >
                   <v-icon color="grey lighten-1">
                     {{ Mdi.mdiInformation }}
@@ -311,7 +308,11 @@
               <v-list-item-action>
                 <v-btn
                   icon
-                  @click="open('https://message.bilibili.com/#/whisper/mid'+item.uid)"
+                  @click="
+                    open(
+                      'https://message.bilibili.com/#/whisper/mid' + item.uid
+                    )
+                  "
                 >
                   <v-icon color="grey lighten-1">
                     {{ Mdi.mdiSend }}
@@ -345,7 +346,7 @@
 
 <script>
 import SettingAlertPage from './SettingAlertPage'
-import {dialog} from '@electron/remote'
+import { dialog } from '@electron/remote'
 const log = require('electron-log')
 
 export default {
@@ -358,19 +359,21 @@ export default {
         t: ''
       },
       selecttedItem: [],
-      guards: [{
-        face: './static/noface.jpg',
-        username: '加载中',
-        guard_level: 1,
-        is_alive: 0,
-        rank: 1,
-        ruid: 61639371,
-        uid: 475210,
-        medal_info: {
-          medal_level: 27,
-          medal_name: "轴芯"
+      guards: [
+        {
+          face: './static/noface.jpg',
+          username: '加载中',
+          guard_level: 1,
+          is_alive: 0,
+          rank: 1,
+          ruid: 61639371,
+          uid: 475210,
+          medal_info: {
+            medal_level: 27,
+            medal_name: '轴芯'
+          }
         }
-      },],
+      ],
       statistic: {
         total: 0,
         type1: 0,
@@ -381,25 +384,25 @@ export default {
       range_menu: false,
       datePick: {
         currentDate: '2021-09-11',
-        allowedList:  [],
+        allowedList: [],
         range: []
       },
       addDialog: false,
       addUser: {
         mode: false,
-        keyword: "",
-        title: ""
+        keyword: '',
+        title: ''
       },
       roomID: ''
     }
   },
-  mounted () {
+  mounted() {
     this.roomID = this.Store.get('roomID', '')
     this.guards = this.Store.get('guards', [])
-    this.Store.onDidChange('guards', newValue => {
+    this.Store.onDidChange('guards', (newValue) => {
       this.guards = newValue
     })
-    this.Store.onDidChange('roomID', newValue => {
+    this.Store.onDidChange('roomID', (newValue) => {
       this.roomID = newValue
       this.updateList()
       this.updateStatistic()
@@ -410,11 +413,11 @@ export default {
     this.updateStatistic()
   },
   methods: {
-    open (link) {
+    open(link) {
       this.$electron.shell.openExternal(link)
     },
-    guardLevelToString (level) {
-      if (level === level +'') {
+    guardLevelToString(level) {
+      if (level === level + '') {
         return level
       }
       switch (level) {
@@ -436,7 +439,7 @@ export default {
       let that = this
       let dateNow = this.currentDate()
       this.datePick.allowedList = [dateNow]
-      this.Bilibili.getGuardValidDate(this.roomID).then(d=>{
+      this.Bilibili.getGuardValidDate(this.roomID).then((d) => {
         log.info('Update DatePicker')
         that.datePick.allowedList.push(...d)
       })
@@ -454,18 +457,18 @@ export default {
         type2: 0,
         type3: 0
       }
-      that.guards.forEach(g=>{
+      that.guards.forEach((g) => {
         that.statistic.total++
         switch (g.guard_level) {
-          case 1:{
+          case 1: {
             that.statistic.type1++
             break
           }
-          case 2:{
+          case 2: {
             that.statistic.type2++
             break
           }
-          case 3:{
+          case 3: {
             that.statistic.type3++
           }
         }
@@ -476,21 +479,30 @@ export default {
       return this.datePick.allowedList.includes(v)
     },
     currentDate() {
-      let date = new Date();
-      let mon = date.getMonth() + 1;
-      let day = date.getDate();
-      return date.getFullYear() + "-"+ (mon<10?"0"+mon:mon) + "-"+(day<10?"0"+day:day);
+      let date = new Date()
+      let mon = date.getMonth() + 1
+      let day = date.getDate()
+      return (
+        date.getFullYear() +
+        '-' +
+        (mon < 10 ? '0' + mon : mon) +
+        '-' +
+        (day < 10 ? '0' + day : day)
+      )
     },
     updateGuardHistoryList(date) {
-      log.info('Update History List',date)
+      log.info('Update History List', date)
       let that = this
       let dateNow = this.currentDate()
       if (date !== dateNow) {
         // Get History Data From Server
-        that.Bilibili.getGuardHistoryList(this.roomID, this.datePick.currentDate).then(d=>{
+        that.Bilibili.getGuardHistoryList(
+          this.roomID,
+          this.datePick.currentDate
+        ).then((d) => {
           that.guards = []
           let newGuards = []
-          d.forEach(g=>{
+          d.forEach((g) => {
             newGuards.push({
               face: g.Face,
               username: g.Username,
@@ -501,7 +513,7 @@ export default {
               uid: g.Uid,
               medal_info: {
                 medal_level: 27,
-                medal_name: "轴芯"
+                medal_name: '轴芯'
               }
             })
           })
@@ -514,34 +526,40 @@ export default {
     },
     updateLastGuardList() {
       let that = this
-      this.Bilibili.getRoomInfo(this.roomID).then(d=>{
-        log.info('Get uid from rid', that.roomID, d.room_info.uid)
-        that.Bilibili.getGuardList(d.room_info.uid, 1, 30).then(r=>{
-          log.info('GetGuardList')
-          that.guards = []
-          that.guards = r.top3
-          that.guards.push(...r.list)
-          // Then Get Rest Guards
-          let now = r.info.now
-          let pages = r.info.page
-          let todo = []
-          for (let i = now+1; i <= pages; i++) {
-            todo.push(that.Bilibili.getGuardList(d.room_info.uid, i, 30))
-          }
-          Promise.all(todo).then(rs=>{
-            rs.forEach(res=>{
-              that.guards.push(...res.list)
+      this.Bilibili.getRoomInfo(this.roomID)
+        .then((d) => {
+          log.info('Get uid from rid', that.roomID, d.room_info.uid)
+          that.Bilibili.getGuardList(d.room_info.uid, 1, 30)
+            .then((r) => {
+              log.info('GetGuardList')
+              that.guards = []
+              that.guards = r.top3
+              that.guards.push(...r.list)
+              // Then Get Rest Guards
+              let now = r.info.now
+              let pages = r.info.page
+              let todo = []
+              for (let i = now + 1; i <= pages; i++) {
+                todo.push(that.Bilibili.getGuardList(d.room_info.uid, i, 30))
+              }
+              Promise.all(todo)
+                .then((rs) => {
+                  rs.forEach((res) => {
+                    that.guards.push(...res.list)
+                  })
+                  this.updateStatistic()
+                })
+                .catch((e) => {
+                  console.error(e)
+                })
             })
-            this.updateStatistic()
-          }).catch(e=>{
-            console.error(e)
-          })
-        }).catch(e=>{
+            .catch((e) => {
+              console.error(e)
+            })
+        })
+        .catch((e) => {
           console.error(e)
         })
-      }).catch(e=>{
-        console.error(e)
-      })
     },
     updateListFromRange() {
       let that = this
@@ -549,43 +567,50 @@ export default {
       if (loginResponse === null) {
         return
       }
-      let range = this.datePick.range.sort((a,b)=>{
-          const da = new Date(a)
-          const db = new Date(b)
-          return da.getTime() - db.getTime()
-        })
-      log.info(`Fetch data of range: [${range}]`)
-      this.Bilibili.getReceivedGuardsByPeriod(loginResponse, range[0], range[1]).then((res)=>{
-        let guards = []
-        for (let g of res) {
-          guards.push({
-            face: './static/noface.jpg',
-            username: g.uname,
-            guard_level: g.gift_name,
-            is_alive: 0,
-            rank: 1,
-            ruid: 61639371,
-            uid: g.uid,
-            medal_info: {
-              medal_level: 27,
-              medal_name: "轴芯"
-            },
-            time: g.time
-          })
-        }
-        guards = guards.sort((a,b)=>{
-          const da = new Date(a)
-          const db = new Date(b)
-          return da.getTime() - db.getTime()
-        })
-        that.guards = guards
-        that.updateStatistic()
-      }).catch(e=>{
-        log.error(e)
-        new Notification("上舰记录获取失败", {
-          body: e
-        })
+      let range = this.datePick.range.sort((a, b) => {
+        const da = new Date(a)
+        const db = new Date(b)
+        return da.getTime() - db.getTime()
       })
+      log.info(`Fetch data of range: [${range}]`)
+      this.Bilibili.getReceivedGuardsByPeriod(loginResponse, range[0], range[1])
+        .then((res) => {
+          log.info(res)
+          let guards = []
+          for (let g of res) {
+            guards.push({
+              face: './static/noface.jpg',
+              username: g.uname,
+              guard_level: g.gift_name,
+              is_alive: 0,
+              rank: 1,
+              ruid: 61639371,
+              uid: g.uid,
+              medal_info: {
+                medal_level: 27,
+                medal_name: '轴芯'
+              },
+              time: g.time
+            })
+          }
+          guards = guards.sort((a, b) => {
+            const da = new Date(a)
+            const db = new Date(b)
+            return da.getTime() - db.getTime()
+          })
+          that.guards = guards
+          that.updateStatistic()
+        })
+        .catch((e) => {
+          log.error(e)
+          let body = JSON.stringify(e)
+          if (e.code && e.code == -101) {
+            body += '\n登录状态已过期，请重新登录'
+          }
+          new Notification('上舰记录获取失败', {
+            body: body
+          })
+        })
     },
     addGuard() {
       let that = this
@@ -593,17 +618,20 @@ export default {
       log.info('Add guard: ', this.addUser)
       this.addDialog = false
       if (this.addUser.keyword == '') {
-          that.showSnackBar(`请输入UID或用户名`)
-          return
+        that.showSnackBar(`请输入UID或用户名`)
+        return
       }
       if (this.addUser.mode) {
         // Username
-        log.info("Search with username")
+        log.info('Search with username')
         if (loginResponse == null) {
           that.showSnackBar(`用户名搜索请先登录`)
           return
         }
-        this.Bilibili.getUserInfoBySearch(loginResponse, this.addUser.keyword).then(d=>{
+        this.Bilibili.getUserInfoBySearch(
+          loginResponse,
+          this.addUser.keyword
+        ).then((d) => {
           log.info(d)
           // face_nft: 0
           // face_nft_type: 0
@@ -630,7 +658,7 @@ export default {
             }
           }
           that.guards.unshift({
-            face: "https:"+d.upic,
+            face: 'https:' + d.upic,
             username: d.uname,
             guard_level: that.addUser.title,
             is_alive: 0,
@@ -639,7 +667,7 @@ export default {
             uid: d.mid,
             medal_info: {
               medal_level: 27,
-              medal_name: "轴芯"
+              medal_name: '轴芯'
             }
           })
           that.updateStatistic()
@@ -652,29 +680,31 @@ export default {
             return
           }
         }
-        this.Bilibili.getUserInfo(loginResponse, this.addUser.keyword).then(d=>{
-          log.info(d)
-          that.guards.unshift({
-            face: 'https:'+d.face,
-            username: d.uname,
-            guard_level: that.addUser.title,
-            is_alive: 0,
-            rank: 1,
-            ruid: 61639371,
-            uid: d.mid,
-            medal_info: {
-              medal_level: 27,
-              medal_name: "轴芯"
-            }
-          })
-          that.updateStatistic()
-        })
+        this.Bilibili.getUserInfo(loginResponse, this.addUser.keyword).then(
+          (d) => {
+            log.info(d)
+            that.guards.unshift({
+              face: 'https:' + d.face,
+              username: d.uname,
+              guard_level: that.addUser.title,
+              is_alive: 0,
+              rank: 1,
+              ruid: 61639371,
+              uid: d.mid,
+              medal_info: {
+                medal_level: 27,
+                medal_name: '轴芯'
+              }
+            })
+            that.updateStatistic()
+          }
+        )
       }
     },
     removeRedundant() {
       const numBeforeRemove = this.guards.length
       let newGuards = new Map()
-      this.guards.forEach(v=>{
+      this.guards.forEach((v) => {
         if (!newGuards.has(v.uid)) {
           newGuards.set(v.uid, v)
           return
@@ -686,12 +716,14 @@ export default {
       this.guards = Array.from(newGuards.values())
       this.updateStatistic()
       const numAfterRemove = this.guards.length
-      log.info(`Remove redundant guards ${numBeforeRemove} -> ${numAfterRemove}`)
-      this.showSnackBar(`移除了 ${numBeforeRemove-numAfterRemove} 个重复项`)
+      log.info(
+        `Remove redundant guards ${numBeforeRemove} -> ${numAfterRemove}`
+      )
+      this.showSnackBar(`移除了 ${numBeforeRemove - numAfterRemove} 个重复项`)
     },
     deleteGuards() {
       log.info('Delete guard', this.selecttedItem)
-      let newGuards = this.guards.filter((v)=>{
+      let newGuards = this.guards.filter((v) => {
         return !this.selecttedItem.includes(v.uid)
       })
       this.guards = newGuards
@@ -712,114 +744,138 @@ export default {
       let output = `舰队总数：${this.guards.length}\n`
       for (let i = 0; i < this.guards.length; i++) {
         if (this.guards[i].time) {
-          output += `${this.guardLevelToString(this.guards[i].guard_level)} ${this.guards[i].uid} ${this.guards[i].username} ${this.guards[i].time.replace(' ', 'T')}\n`
-        }
-        else output += `${this.guardLevelToString(this.guards[i].guard_level)} ${this.guards[i].uid} ${this.guards[i].username}\n`
+          output += `${this.guardLevelToString(this.guards[i].guard_level)} ${
+            this.guards[i].uid
+          } ${this.guards[i].username} ${this.guards[i].time.replace(
+            ' ',
+            'T'
+          )}\n`
+        } else
+          output += `${this.guardLevelToString(this.guards[i].guard_level)} ${
+            this.guards[i].uid
+          } ${this.guards[i].username}\n`
       }
-      dialog.showSaveDialog({
-        title: '导出为 TXT 文件',
-        defaultPath: `${this.roomID}-${this.datePick.currentDate}.txt`,
-        filters: [{name: 'txt', extensions: ['txt']}]
-      }).then(res=>{
-        if (!res.canceled) {
-          log.info(res.filePath)
-          const fs = require('fs')
-          fs.writeFileSync(res.filePath, output, 'utf-8')
-        }
-      })
+      dialog
+        .showSaveDialog({
+          title: '导出为 TXT 文件',
+          defaultPath: `${this.roomID}-${this.datePick.currentDate}.txt`,
+          filters: [{ name: 'txt', extensions: ['txt'] }]
+        })
+        .then((res) => {
+          if (!res.canceled) {
+            log.info(res.filePath)
+            const fs = require('fs')
+            fs.writeFileSync(res.filePath, output, 'utf-8')
+          }
+        })
     },
     importFromFile() {
       let that = this
-      dialog.showOpenDialog({
-        title: '选择文件',
-        filters: [{name: 'list', extensions: ['txt', 'csv']}]
-      }).then(res=>{
-        if (!res.canceled) {
-          log.info(res.filePaths)
-          const fs = require('fs');
-          fs.readFile(res.filePaths[0], (err, data)=>{
-            if (err != null) {
-              console.error(err)
-              return
-            }
-            const content = data.toString().split('\n')
-            log.info(content.length)
-            // Empty Current List
-            this.emptyGuards()
-            // Process Each Line
-            for (let i = 0; i < content.length; i++) {
-              const elements = res.filePaths[0][res.filePaths[0].length-1] == 't' ? content[i].split(' ') : content[i].split(',');
-              if (elements.length < 3) {
-                // Skip This Line
-                continue
+      dialog
+        .showOpenDialog({
+          title: '选择文件',
+          filters: [{ name: 'list', extensions: ['txt', 'csv'] }]
+        })
+        .then((res) => {
+          if (!res.canceled) {
+            log.info(res.filePaths)
+            const fs = require('fs')
+            fs.readFile(res.filePaths[0], (err, data) => {
+              if (err != null) {
+                console.error(err)
+                return
               }
-              const tag = elements[0][0] === '\ufeff' ? elements[0].substring(1) : elements[0]
-              const uid = elements[1]
-              const name = elements[2]
-              let tag_type = 4
-              switch (tag) {
-                case '舰长':
-                  tag_type = 3
-                  break
-                case '提督':
-                  tag_type = 2
-                  break
-                case '总督':
-                  tag_type = 1
-                  break
-                default:
-                  tag_type = tag
-                  break;
-              }
-              let ng = {
-                face: 'static/noface.jpg',
-                username: name,
-                guard_level: tag_type,
-                is_alive: 0,
-                rank: 1,
-                ruid: 61639371,
-                uid: uid,
-                medal_info: {
-                  medal_level: 27,
-                  medal_name: "轴芯"
+              const content = data.toString().split('\n')
+              log.info(content.length)
+              // Empty Current List
+              this.emptyGuards()
+              // Process Each Line
+              for (let i = 0; i < content.length; i++) {
+                const elements =
+                  res.filePaths[0][res.filePaths[0].length - 1] == 't'
+                    ? content[i].split(' ')
+                    : content[i].split(',')
+                if (elements.length < 3) {
+                  // Skip This Line
+                  continue
                 }
+                const tag =
+                  elements[0][0] === '\ufeff'
+                    ? elements[0].substring(1)
+                    : elements[0]
+                const uid = elements[1]
+                const name = elements[2]
+                let tag_type = 4
+                switch (tag) {
+                  case '舰长':
+                    tag_type = 3
+                    break
+                  case '提督':
+                    tag_type = 2
+                    break
+                  case '总督':
+                    tag_type = 1
+                    break
+                  default:
+                    tag_type = tag
+                    break
+                }
+                let ng = {
+                  face: 'static/noface.jpg',
+                  username: name,
+                  guard_level: tag_type,
+                  is_alive: 0,
+                  rank: 1,
+                  ruid: 61639371,
+                  uid: uid,
+                  medal_info: {
+                    medal_level: 27,
+                    medal_name: '轴芯'
+                  }
+                }
+                if (elements.length > 3) {
+                  ng.time = elements[3].replace('T', ' ')
+                }
+                that.guards.push(ng)
               }
-              if (elements.length > 3) {
-                ng.time = elements[3].replace('T', ' ')
-              }
-              that.guards.push(ng)
-            }
-            that.updateStatistic()
-          })
-        }
-      })
+              that.updateStatistic()
+            })
+          }
+        })
     },
     exportCSV() {
       log.info('Export CSV file')
       let output = ``
       for (let i = 0; i < this.guards.length; i++) {
         if (this.guards[i].time) {
-          output += `${this.guardLevelToString(this.guards[i].guard_level)},${this.guards[i].uid},${this.guards[i].username},${this.guards[i].time.replace(' ', 'T')}\n`
+          output += `${this.guardLevelToString(this.guards[i].guard_level)},${
+            this.guards[i].uid
+          },${this.guards[i].username},${this.guards[i].time.replace(
+            ' ',
+            'T'
+          )}\n`
         } else {
-          output += `${this.guardLevelToString(this.guards[i].guard_level)},${this.guards[i].uid},${this.guards[i].username}\n`
+          output += `${this.guardLevelToString(this.guards[i].guard_level)},${
+            this.guards[i].uid
+          },${this.guards[i].username}\n`
         }
       }
-      dialog.showSaveDialog({
-        title: '导出为 CSV 文件',
-        defaultPath: `${this.roomID}-${this.datePick.currentDate}.csv`,
-        filters: [{name: 'csv', extensions: ['csv']}]
-      }).then(res=>{
-        if (!res.canceled) {
-          log.info(res.filePath)
-          const fs = require('fs');
-          fs.writeFileSync(res.filePath, `\ufeff${output}`, 'utf-8')
-        }
-      })
+      dialog
+        .showSaveDialog({
+          title: '导出为 CSV 文件',
+          defaultPath: `${this.roomID}-${this.datePick.currentDate}.csv`,
+          filters: [{ name: 'csv', extensions: ['csv'] }]
+        })
+        .then((res) => {
+          if (!res.canceled) {
+            log.info(res.filePath)
+            const fs = require('fs')
+            fs.writeFileSync(res.filePath, `\ufeff${output}`, 'utf-8')
+          }
+        })
     }
   }
 }
 </script>
 
-<style>
-
-</style>
+<style></style>
