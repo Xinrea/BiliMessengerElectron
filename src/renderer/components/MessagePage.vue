@@ -3,9 +3,7 @@
     <setting-alert-page v-if="!isLogin" />
     <div v-else>
       <v-card>
-        <v-card-title>
-          模板选择
-        </v-card-title>
+        <v-card-title> 模板选择 </v-card-title>
         <v-card-text>
           <v-select
             v-model="templateName"
@@ -17,6 +15,8 @@
             no-resize
             :value="getTemplateValue()"
             label="模板内容"
+            class="template-textarea"
+            outlined
           />
           <div v-if="getTemplateValue().indexOf('{code}') !== -1">
             该模板需要使用兑换码
@@ -24,13 +24,9 @@
         </v-card-text>
       </v-card>
       <v-card class="mt-3">
-        <v-card-title>
-          发送
-        </v-card-title>
+        <v-card-title> 发送 </v-card-title>
         <v-card-text>
-          <p>
-            当前发送进度：{{ progressIndex }} / {{ guardLength }}
-          </p>
+          <p>当前发送进度：{{ progressIndex }} / {{ guardLength }}</p>
           <p>
             私信目标：
             <span
@@ -38,18 +34,12 @@
               :key="i"
               class="ml-1"
             >
-              <v-chip
-                :color="i === 0 ? 'orange' : 'default'"
-              >
+              <v-chip :color="i === 0 ? 'orange' : 'default'">
                 {{ g.username }}
               </v-chip>
             </span>
             <span>
-              <v-chip
-                v-if="guardLength - progressIndex > 5"
-              >
-                ...
-              </v-chip>
+              <v-chip v-if="guardLength - progressIndex > 5"> ... </v-chip>
             </span>
           </p>
           <v-textarea
@@ -57,6 +47,8 @@
             no-resize
             :value="getMessageContent()"
             label="私信内容"
+            class="message-textarea"
+            outlined
           />
           <v-btn
             :disabled="checkBeforeSend()"
@@ -70,9 +62,7 @@
             v-if="checkBeforeSend()"
             class="ml-3"
           >
-            <v-icon
-              v-if="checkBeforeSend()"
-            >
+            <v-icon v-if="checkBeforeSend()">
               {{ Mdi.mdiAlertCircle }}
             </v-icon>
             {{ errorMessage }}
@@ -80,9 +70,7 @@
         </v-card-text>
       </v-card>
       <v-card class="mt-3">
-        <v-card-title>
-          撤回消息
-        </v-card-title>
+        <v-card-title> 撤回消息 </v-card-title>
         <v-card-text>
           <p>
             本次已私信用户：
@@ -91,18 +79,12 @@
               :key="i"
               class="ml-1"
             >
-              <v-chip
-                :color="i === 0 ? 'orange' : 'default'"
-              >
+              <v-chip :color="i === 0 ? 'orange' : 'default'">
                 {{ g.username }}
               </v-chip>
             </span>
             <span>
-              <v-chip
-                v-if="sentMsgList.length > 5"
-              >
-                ...
-              </v-chip>
+              <v-chip v-if="sentMsgList.length > 5"> ... </v-chip>
             </span>
           </p>
           <v-btn
@@ -123,8 +105,8 @@
 import SettingAlertPage from './SettingAlertPage.vue'
 export default {
   name: 'MessagePage',
-  components: {SettingAlertPage},
-  data () {
+  components: { SettingAlertPage },
+  data() {
     return {
       templateList: [],
       templateName: '',
@@ -150,13 +132,13 @@ export default {
       return this.sentMsgList.slice(0, 5)
     }
   },
-  mounted () {
+  mounted() {
     this.templateList = this.Store.get('templateList', [])
-    this.Store.onDidChange('templateList', v=>{
+    this.Store.onDidChange('templateList', (v) => {
       this.templateList = v
     })
     this.guardList = this.Store.get('guards', [])
-    this.Store.onDidChange('guards', v=>{
+    this.Store.onDidChange('guards', (v) => {
       this.guardList = v
       if (!this.inProgress) {
         this.progressIndex = 0
@@ -165,17 +147,17 @@ export default {
     })
     this.guardLength = this.guardList.length
     this.codeList = this.Store.get('codes', [])
-    this.Store.onDidChange('codes', v=>{
+    this.Store.onDidChange('codes', (v) => {
       this.codeList = v
     })
     this.setting = this.Store.get('setting', {
       sendInterval: 1000
     })
-    this.Store.onDidChange('setting', v=>{
+    this.Store.onDidChange('setting', (v) => {
       this.setting = v
     })
     this.isLogin = this.Store.get('loginResponse', null) !== null
-    this.Store.onDidChange('loginResponse',v=>{
+    this.Store.onDidChange('loginResponse', (v) => {
       console.log('login changed', v)
       if (v !== null) {
         this.isLogin = true
@@ -185,8 +167,8 @@ export default {
     })
   },
   methods: {
-    getTemplateValue () {
-      return this.Store.get('template:'+this.templateName, '')
+    getTemplateValue() {
+      return this.Store.get('template:' + this.templateName, '')
     },
     getShortList() {
       return this.guardList.slice(0, 5)
@@ -210,20 +192,26 @@ export default {
       return this.processTag(this.getTemplateValue())
     },
     processTag(v) {
-      if (this.guardLength === 0 || this.progressIndex > this.guardLength || this.guardList.length === 0) {
+      if (
+        this.guardLength === 0 ||
+        this.progressIndex > this.guardLength ||
+        this.guardList.length === 0
+      ) {
         return ''
       }
       let dates = this.getCurrentDate()
       let currentUser = this.guardList[0]
-      return v.replaceAll('{level}', this.guardLevelToString(currentUser.guard_level)).replaceAll('{name}', currentUser.username)
+      return v
+        .replaceAll('{level}', this.guardLevelToString(currentUser.guard_level))
+        .replaceAll('{name}', currentUser.username)
         .replaceAll('{code}', this.codeList[0])
         .replaceAll('{date}', dates.fullDate)
         .replaceAll('{month}', dates.month.toString())
         .replaceAll('{lastMonth}', dates.lastMonth.toString())
         .replaceAll('{day}', dates.day.toString())
     },
-    guardLevelToString (level) {
-      if (level === level +'') {
+    guardLevelToString(level) {
+      if (level === level + '') {
         return level
       }
       switch (level) {
@@ -242,12 +230,17 @@ export default {
       }
     },
     getCurrentDate() {
-      let date = new Date();
-      let mon = date.getMonth() + 1;
-      let day = date.getDate();
+      let date = new Date()
+      let mon = date.getMonth() + 1
+      let day = date.getDate()
       return {
-        fullDate: date.getFullYear() + "-" + (mon < 10 ? "0" + mon : mon) + "-" + (day < 10 ? "0" + day : day),
-        month: date.getMonth()+1,
+        fullDate:
+          date.getFullYear() +
+          '-' +
+          (mon < 10 ? '0' + mon : mon) +
+          '-' +
+          (day < 10 ? '0' + day : day),
+        month: date.getMonth() + 1,
         lastMonth: date.getMonth() === 0 ? 12 : date.getMonth(),
         day: date.getDate()
       }
@@ -261,36 +254,50 @@ export default {
     prosessNext() {
       console.log('process', this.progressIndex, this.guardLength)
       if (this.progressIndex < this.guardLength) {
-        this.Bilibili.sendMessage(this.guardList[0].uid, this.Store.get('loginResponse'), this.getMessageContent()).then(res => {
-          this.progressIndex += 1
-          // 保存发送消息接口返回的msg_key用于撤回
-          this.sentMsgList.push({
-            uid: this.guardList[0].uid,
-            username: this.guardList[0].username,
-            msg_key: res.msg_key,
-            timestamp: new Date().getTime()
+        this.Bilibili.sendMessage(
+          this.guardList[0].uid,
+          this.Store.get('loginResponse'),
+          this.getMessageContent()
+        )
+          .then((res) => {
+            this.progressIndex += 1
+            // 保存发送消息接口返回的msg_key用于撤回
+            this.sentMsgList.push({
+              uid: this.guardList[0].uid,
+              username: this.guardList[0].username,
+              msg_key: res.msg_key,
+              timestamp: new Date().getTime()
+            })
+            this.guardList.splice(0, 1)
+            this.Store.set('guards', this.guardList)
+            if (this.getTemplateValue().indexOf('{code}') !== -1) {
+              this.codeList.splice(0, 1)
+              this.Store.set('codes', this.codeList)
+            }
+            setTimeout(this.prosessNext, this.setting.sendInterval)
           })
-          this.guardList.splice(0,1)
-          this.Store.set('guards', this.guardList)
-          if (this.getTemplateValue().indexOf('{code}') !== -1) {
-            this.codeList.splice(0,1)
-            this.Store.set('codes', this.codeList)
-          }
-          setTimeout(this.prosessNext, this.setting.sendInterval)
-        }).catch(e=>{
-          var currentGuard = this.guardList[0]
-          this.remainList.push(currentGuard)
-          this.progressIndex += 1
-          this.guardList.splice(0,1)
-          this.Store.set('guards', this.guardList)
-          new Notification("私信发送失败", { body: "向"+currentGuard.username+"发送私信时遇到了问题："+e.message })
-          setTimeout(this.prosessNext, this.setting.sendInterval)
-        })
+          .catch((e) => {
+            var currentGuard = this.guardList[0]
+            this.remainList.push(currentGuard)
+            this.progressIndex += 1
+            this.guardList.splice(0, 1)
+            this.Store.set('guards', this.guardList)
+            new Notification('私信发送失败', {
+              body:
+                '向' +
+                currentGuard.username +
+                '发送私信时遇到了问题：' +
+                e.message
+            })
+            setTimeout(this.prosessNext, this.setting.sendInterval)
+          })
       } else {
         // End of message sending
         this.inProgress = false
         this.Store.set('guards', this.remainList)
-        new Notification("私信发送完成", { body: "共有 "+this.remainList.length+" 条发送失败"})
+        new Notification('私信发送完成', {
+          body: '共有 ' + this.remainList.length + ' 条发送失败'
+        })
         this.remainList = []
       }
     },
@@ -301,35 +308,46 @@ export default {
     },
     recallNext() {
       console.log('recall')
-      if(this.sentMsgList.length > 0) {
+      if (this.sentMsgList.length > 0) {
         const sentMsg = this.sentMsgList.shift()
         if (new Date().getTime() - sentMsg.timestamp > 120000) {
           // 消息超过两分钟无法撤回 终止循环
-          new Notification("私信撤回失败", { body: "无法撤回超过两分钟的消息" })
+          new Notification('私信撤回失败', { body: '无法撤回超过两分钟的消息' })
           this.remainList.push(sentMsg)
           this.remainList.push(...this.sentMsgList)
           this.sentMsgList = []
           setTimeout(this.recallNext, this.setting.sendInterval)
         } else {
           // 调用撤回消息接口
-          this.Bilibili.recallMessage(sentMsg.uid, this.Store.get('loginResponse'), sentMsg.msg_key).then(() => {
-            console.log('recall', 'success', sentMsg)
-            setTimeout(this.recallNext, this.setting.sendInterval)
-          }).catch(e=>{
-            this.remainList.push(sentMsg)
-            new Notification("私信撤回失败", { body: "撤回"+sentMsg.username+"私信时遇到了问题："+e.message })
-            if (e.code === 21041) {
-              // 如果消息超过两分钟导致失败 终止循环
-              this.remainList.push(...this.sentMsgList)
-              this.sentMsgList = []
-            }
-            setTimeout(this.recallNext, this.setting.sendInterval)
-          })
+          this.Bilibili.recallMessage(
+            sentMsg.uid,
+            this.Store.get('loginResponse'),
+            sentMsg.msg_key
+          )
+            .then(() => {
+              console.log('recall', 'success', sentMsg)
+              setTimeout(this.recallNext, this.setting.sendInterval)
+            })
+            .catch((e) => {
+              this.remainList.push(sentMsg)
+              new Notification('私信撤回失败', {
+                body:
+                  '撤回' + sentMsg.username + '私信时遇到了问题：' + e.message
+              })
+              if (e.code === 21041) {
+                // 如果消息超过两分钟导致失败 终止循环
+                this.remainList.push(...this.sentMsgList)
+                this.sentMsgList = []
+              }
+              setTimeout(this.recallNext, this.setting.sendInterval)
+            })
         }
       } else {
         // End of message recall
         this.inProgress = false
-        new Notification("私信撤回完成", { body: "共有 "+this.remainList.length+" 条撤回失败"})
+        new Notification('私信撤回完成', {
+          body: '共有 ' + this.remainList.length + ' 条撤回失败'
+        })
         this.remainList = []
       }
     }
@@ -338,5 +356,31 @@ export default {
 </script>
 
 <style scoped>
+.template-textarea :deep(.v-input__control) {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
 
+.template-textarea :deep(.v-text-field__details) {
+  background-color: transparent !important;
+}
+
+.message-textarea :deep(.v-input__control) {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.message-textarea :deep(.v-text-field__details) {
+  background-color: transparent !important;
+}
+
+.template-textarea :deep(.v-input__slot),
+.message-textarea :deep(.v-input__slot) {
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 4px;
+}
+
+.template-textarea :deep(textarea),
+.message-textarea :deep(textarea) {
+  color: rgba(255, 255, 255, 0.87) !important;
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
 </style>
