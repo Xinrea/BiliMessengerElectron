@@ -14,21 +14,90 @@
         总数：{{ statistic.total }}
       </v-chip>
       <v-chip
-        class="ma-1"
-        color="rgb(220, 113, 113)"
+        class="ma-1 filter-chip"
+        :class="{
+          'filter-active': guardTypeFilters.type1,
+          'filter-inactive': !guardTypeFilters.type1
+        }"
+        :color="
+          guardTypeFilters.type1 ? 'rgb(220, 113, 113)' : 'grey lighten-3'
+        "
+        :text-color="guardTypeFilters.type1 ? 'white' : 'grey darken-2'"
+        clickable
+        @click="toggleGuardTypeFilter('type1')"
       >
+        <v-icon
+          v-if="guardTypeFilters.type1"
+          left
+          small
+        >
+          mdi-check-circle
+        </v-icon>
+        <v-icon
+          v-else
+          left
+          small
+        >
+          mdi-close-circle
+        </v-icon>
         总督：{{ statistic.type1 }}
       </v-chip>
       <v-chip
-        class="ma-1"
-        color="rgb(190, 119, 198)"
+        class="ma-1 filter-chip"
+        :class="{
+          'filter-active': guardTypeFilters.type2,
+          'filter-inactive': !guardTypeFilters.type2
+        }"
+        :color="
+          guardTypeFilters.type2 ? 'rgb(190, 119, 198)' : 'grey lighten-3'
+        "
+        :text-color="guardTypeFilters.type2 ? 'white' : 'grey darken-2'"
+        clickable
+        @click="toggleGuardTypeFilter('type2')"
       >
+        <v-icon
+          v-if="guardTypeFilters.type2"
+          left
+          small
+        >
+          mdi-check-circle
+        </v-icon>
+        <v-icon
+          v-else
+          left
+          small
+        >
+          mdi-close-circle
+        </v-icon>
         提督：{{ statistic.type2 }}
       </v-chip>
       <v-chip
-        class="ma-1"
-        color="rgb(124, 168, 202)"
+        class="ma-1 filter-chip"
+        :class="{
+          'filter-active': guardTypeFilters.type3,
+          'filter-inactive': !guardTypeFilters.type3
+        }"
+        :color="
+          guardTypeFilters.type3 ? 'rgb(124, 168, 202)' : 'grey lighten-3'
+        "
+        :text-color="guardTypeFilters.type3 ? 'white' : 'grey darken-2'"
+        clickable
+        @click="toggleGuardTypeFilter('type3')"
       >
+        <v-icon
+          v-if="guardTypeFilters.type3"
+          left
+          small
+        >
+          mdi-check-circle
+        </v-icon>
+        <v-icon
+          v-else
+          left
+          small
+        >
+          mdi-close-circle
+        </v-icon>
         舰长：{{ statistic.type3 }}
       </v-chip>
     </v-card-title>
@@ -374,12 +443,19 @@ export default {
           }
         }
       ],
+      originalGuards: [],
       statistic: {
         total: 0,
         type1: 0,
         type2: 0,
         type3: 0
       },
+      guardTypeFilters: {
+        type1: true, // 总督
+        type2: true, // 提督
+        type3: true // 舰长
+      },
+      isApplyingFilters: false,
       menu: false,
       range_menu: false,
       datePick: {
@@ -396,11 +472,21 @@ export default {
       roomID: ''
     }
   },
+
   mounted() {
     this.roomID = this.Store.get('roomID', '')
+    this.originalGuards = this.Store.get('originalGuards', [])
     this.guards = this.Store.get('guards', [])
-    this.Store.onDidChange('guards', (newValue) => {
-      this.guards = newValue
+    // If originalGuards is empty, initialize it with current guards
+    if (this.originalGuards.length === 0 && this.guards.length > 0) {
+      this.originalGuards = [...this.guards]
+      this.Store.set('originalGuards', this.originalGuards)
+    }
+    this.Store.onDidChange('originalGuards', (newValue) => {
+      if (!this.isApplyingFilters) {
+        this.originalGuards = newValue
+        this.applyFilters()
+      }
     })
     this.Store.onDidChange('roomID', (newValue) => {
       this.roomID = newValue
@@ -457,7 +543,7 @@ export default {
         type2: 0,
         type3: 0
       }
-      that.guards.forEach((g) => {
+      that.originalGuards.forEach((g) => {
         that.statistic.total++
         switch (g.guard_level) {
           case 1: {
@@ -473,7 +559,8 @@ export default {
           }
         }
       })
-      this.Store.set('guards', this.guards)
+      this.Store.set('originalGuards', this.originalGuards)
+      this.applyFilters()
     },
     dateAllowed(v) {
       return this.datePick.allowedList.includes(v)
@@ -500,7 +587,7 @@ export default {
           this.roomID,
           this.datePick.currentDate
         ).then((d) => {
-          that.guards = []
+          that.originalGuards = []
           let newGuards = []
           d.forEach((g) => {
             newGuards.push({
@@ -517,7 +604,7 @@ export default {
               }
             })
           })
-          that.guards = newGuards
+          that.originalGuards = newGuards
           this.updateStatistic()
         })
       } else {
@@ -532,9 +619,9 @@ export default {
           that.Bilibili.getGuardList(d.room_info.uid, 1, 30)
             .then((r) => {
               log.info('GetGuardList')
-              that.guards = []
-              that.guards = r.top3
-              that.guards.push(...r.list)
+              that.originalGuards = []
+              that.originalGuards = r.top3
+              that.originalGuards.push(...r.list)
               // Then Get Rest Guards
               let now = r.info.now
               let pages = r.info.page
@@ -545,7 +632,7 @@ export default {
               Promise.all(todo)
                 .then((rs) => {
                   rs.forEach((res) => {
-                    that.guards.push(...res.list)
+                    that.originalGuards.push(...res.list)
                   })
                   this.updateStatistic()
                 })
@@ -598,7 +685,7 @@ export default {
             const db = new Date(b)
             return da.getTime() - db.getTime()
           })
-          that.guards = guards
+          that.originalGuards = guards
           that.updateStatistic()
         })
         .catch((e) => {
@@ -651,13 +738,13 @@ export default {
           // upic: "//i2.hdslb.com/bfs/face/36e5fa47a770fef9ad64db390ef8059b5ec0ecab.jpg"
           // usign: "好好放个假"
           // verify_info: ""
-          for (let i = 0; i < that.guards.length; i++) {
-            if (that.guards[i].uid === d.mid) {
+          for (let i = 0; i < that.originalGuards.length; i++) {
+            if (that.originalGuards[i].uid === d.mid) {
               that.showSnackBar(`用户${that.addUser.keyword}已存在`)
               return
             }
           }
-          that.guards.unshift({
+          that.originalGuards.unshift({
             face: 'https:' + d.upic,
             username: d.uname,
             guard_level: that.addUser.title,
@@ -674,8 +761,8 @@ export default {
         })
       } else {
         // UID
-        for (let i = 0; i < this.guards.length; i++) {
-          if (this.guards[i].uid.toString() === that.addUser.keyword) {
+        for (let i = 0; i < this.originalGuards.length; i++) {
+          if (this.originalGuards[i].uid.toString() === that.addUser.keyword) {
             that.showSnackBar(`用户${that.addUser.keyword}已存在`)
             return
           }
@@ -683,7 +770,7 @@ export default {
         this.Bilibili.getUserInfo(loginResponse, this.addUser.keyword).then(
           (d) => {
             log.info(d)
-            that.guards.unshift({
+            that.originalGuards.unshift({
               face: 'https:' + d.face,
               username: d.uname,
               guard_level: that.addUser.title,
@@ -702,9 +789,9 @@ export default {
       }
     },
     removeRedundant() {
-      const numBeforeRemove = this.guards.length
+      const numBeforeRemove = this.originalGuards.length
       let newGuards = new Map()
-      this.guards.forEach((v) => {
+      this.originalGuards.forEach((v) => {
         if (!newGuards.has(v.uid)) {
           newGuards.set(v.uid, v)
           return
@@ -713,9 +800,9 @@ export default {
           newGuards.set(v.uid, v)
         }
       })
-      this.guards = Array.from(newGuards.values())
+      this.originalGuards = Array.from(newGuards.values())
       this.updateStatistic()
-      const numAfterRemove = this.guards.length
+      const numAfterRemove = this.originalGuards.length
       log.info(
         `Remove redundant guards ${numBeforeRemove} -> ${numAfterRemove}`
       )
@@ -723,15 +810,15 @@ export default {
     },
     deleteGuards() {
       log.info('Delete guard', this.selecttedItem)
-      let newGuards = this.guards.filter((v) => {
+      let newGuards = this.originalGuards.filter((v) => {
         return !this.selecttedItem.includes(v.uid)
       })
-      this.guards = newGuards
+      this.originalGuards = newGuards
       this.selecttedItem = []
       this.updateStatistic()
     },
     emptyGuards() {
-      this.guards = []
+      this.originalGuards = []
       this.selecttedItem = []
       this.updateStatistic()
     },
@@ -836,12 +923,38 @@ export default {
                 if (elements.length > 3) {
                   ng.time = elements[3].replace('T', ' ')
                 }
-                that.guards.push(ng)
+                that.originalGuards.push(ng)
               }
               that.updateStatistic()
             })
           }
         })
+    },
+    toggleGuardTypeFilter(type) {
+      this.guardTypeFilters[type] = !this.guardTypeFilters[type]
+      this.applyFilters()
+    },
+    applyFilters() {
+      if (this.isApplyingFilters) return
+      this.isApplyingFilters = true
+
+      const filteredGuards = this.originalGuards.filter((guard) => {
+        switch (guard.guard_level) {
+          case 1:
+            return this.guardTypeFilters.type1
+          case 2:
+            return this.guardTypeFilters.type2
+          case 3:
+            return this.guardTypeFilters.type3
+          default:
+            // For custom guard levels (strings), show them always
+            return true
+        }
+      })
+      this.guards = filteredGuards
+      this.Store.set('guards', filteredGuards)
+
+      this.isApplyingFilters = false
     },
     exportCSV() {
       log.info('Export CSV file')
@@ -878,4 +991,27 @@ export default {
 }
 </script>
 
-<style></style>
+<style scoped>
+.filter-chip {
+  transition: all 0.3s ease !important;
+  border: 2px solid transparent !important;
+}
+
+.filter-active {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.filter-inactive {
+  opacity: 0.6;
+  border-color: #e0e0e0 !important;
+}
+
+.filter-chip:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.filter-inactive:hover {
+  opacity: 0.8;
+}
+</style>
