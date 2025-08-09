@@ -521,6 +521,22 @@ export default {
         }
       }
     },
+    guardNameToLevel(name) {
+      switch (name) {
+        case '总督': {
+          return 1
+        }
+        case '提督': {
+          return 2
+        }
+        case '舰长': {
+          return 3
+        }
+        default: {
+          return 3
+        }
+      }
+    },
     updateCalendar() {
       let that = this
       let dateNow = this.currentDate()
@@ -668,7 +684,7 @@ export default {
             guards.push({
               face: './static/noface.jpg',
               username: g.uname,
-              guard_level: g.gift_name,
+              guard_level: this.guardNameToLevel(g.gift_name),
               is_alive: 0,
               rank: 1,
               ruid: 61639371,
