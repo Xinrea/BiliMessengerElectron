@@ -162,6 +162,115 @@
 <script>
 import * as https from 'https'
 
+function parseSetCookies(setCookieHeaders, cookies) {
+  let headers = setCookieHeaders || []
+  headers.forEach((header) => {
+    let cookie = header.split(';')[0]
+    let separator = cookie.indexOf('=')
+    if (separator !== -1) {
+      cookies[cookie.slice(0, separator)] = cookie.slice(separator + 1)
+    }
+  })
+}
+
+function buildCookieString(cookies) {
+  return Object.keys(cookies)
+    .map((key) => key + '=' + cookies[key])
+    .join('; ')
+}
+
+function createLoginResponse(cookies) {
+  if (!cookies.DedeUserID || !cookies.SESSDATA || !cookies.bili_jct) {
+    return null
+  }
+  let sessdata = cookies.SESSDATA
+  try {
+    sessdata = decodeURIComponent(sessdata)
+  } catch (e) {
+    // 保留服务端下发的原值，后续请求还会执行兼容性归一化
+  }
+  return Object.assign({}, cookies, {
+    cookies: buildCookieString(cookies),
+    SESSDATA: sessdata
+  })
+}
+
+function resolveQrLogin(loginUrl, redirects, cookies) {
+  redirects = redirects || 0
+  cookies = cookies || {}
+
+  return new Promise((resolve, reject) => {
+    let parsedUrl
+    try {
+      parsedUrl = new URL(loginUrl)
+    } catch (e) {
+      reject(new Error('扫码登录返回了无效地址'))
+      return
+    }
+
+    let loginCookieNames = [
+      'SESSDATA',
+      'DedeUserID',
+      'DedeUserID__ckMd5',
+      'bili_jct',
+      'sid'
+    ]
+    loginCookieNames.forEach((key) => {
+      if (parsedUrl.searchParams.has(key)) {
+        cookies[key] = parsedUrl.searchParams.get(key)
+      }
+    })
+    let loginResponse = createLoginResponse(cookies)
+    if (loginResponse) {
+      resolve(loginResponse)
+      return
+    }
+    if (redirects > 5) {
+      reject(new Error('扫码登录跳转次数过多'))
+      return
+    }
+
+    if (parsedUrl.protocol !== 'https:') {
+      reject(new Error('扫码登录跳转到了不安全的地址'))
+      return
+    }
+    let requestOptions = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || 443,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'GET',
+      headers: {
+        cookie: buildCookieString(cookies),
+        Referer: 'https://passport.bilibili.com/',
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+      },
+      rejectUnauthorized: true
+    }
+    let request = https.get(
+      requestOptions,
+      (res) => {
+        parseSetCookies(res.headers['set-cookie'], cookies)
+        let response = createLoginResponse(cookies)
+        if (response) {
+          res.resume()
+          resolve(response)
+          return
+        }
+
+        let location = res.headers.location
+        res.resume()
+        if (location) {
+          resolve(resolveQrLogin(new URL(location, parsedUrl).toString(), redirects + 1, cookies))
+        } else {
+          reject(new Error('登录成功，但未能取得账号 Cookie，请重新扫码'))
+        }
+      }
+    )
+    request.on('error', reject)
+  })
+}
+
 export default {
   name: 'SettingPage',
   data() {
@@ -276,18 +385,21 @@ export default {
                 res.on('end', () => {
                   let resp = JSON.parse(dd)
                   if (resp['data']['code'] === 0) {
-                    that.statusText = '登录成功'
-                    let querystring = require('querystring')
-                    let url = resp['data']['url']
-                    let params = querystring.parse(url.split('?')[1])
-                    that.loginResponse = params
-                    that.Store.set('loginResponse', that.loginResponse)
-                    that.updateUserInfo(params['DedeUserID'])
-                    // Display Room number
-                    {
-                      that.roomSetting.edited = true
-                      that.stepScan = false
-                    }
+                    clearInterval(that.qrTimer)
+                    that.statusText = '正在完成登录...'
+                    resolveQrLogin(resp['data']['url'])
+                      .then((loginResponse) => {
+                        that.statusText = '登录成功'
+                        that.loginResponse = loginResponse
+                        that.Store.set('loginResponse', loginResponse)
+                        that.updateUserInfo(loginResponse.DedeUserID)
+                        // Display Room number
+                        that.roomSetting.edited = true
+                        that.stepScan = false
+                      })
+                      .catch((err) => {
+                        that.statusText = '登录失败：' + err.message
+                      })
                   } else {
                     if (resp['data']['code'] === 86101) {
                       that.statusText =

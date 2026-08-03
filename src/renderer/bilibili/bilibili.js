@@ -6,7 +6,7 @@ import * as crypto from 'crypto'
 let wbiKeysCache = null
 let wbiKeysCacheTime = 0
 const WBI_KEYS_CACHE_DURATION = 5 * 60 * 1000 // 5分钟缓存
-let biliTicketCache = null
+let biliTicketCache = {}
 const MESSAGE_BUVID3_KEY_PREFIX = 'im_buvid3_'
 const MESSAGE_DEV_ID_KEY_PREFIX = 'im_deviceid_'
 
@@ -136,7 +136,8 @@ function cookieString(userData) {
     }
   })
 
-  let ticket = userData.bili_ticket || biliTicketCache
+  let uid = userData.DedeUserID ? String(userData.DedeUserID) : ''
+  let ticket = userData.bili_ticket || biliTicketCache[uid]
   if (ticket && !cookies.bili_ticket) {
     cookies.bili_ticket = ticket
   }
@@ -172,12 +173,14 @@ function getWbiKeys(userData) {
         for (let cookie of setCookieHeaders) {
           let match = cookie.match(/bili_ticket=([^;]+)/)
           if (match) {
-            biliTicketCache = match[1]
-            console.log('从nav接口捕获到bili_ticket:', biliTicketCache.substring(0, 50) + '...')
+            let uid = userData && userData.DedeUserID ? String(userData.DedeUserID) : ''
+            biliTicketCache[uid] = match[1]
+            console.log('从nav接口捕获到bili_ticket:', biliTicketCache[uid].substring(0, 50) + '...')
           }
         }
       }
-      if (!biliTicketCache) {
+      let uid = userData && userData.DedeUserID ? String(userData.DedeUserID) : ''
+      if (!biliTicketCache[uid]) {
         console.warn('未从nav接口捕获到bili_ticket，请手动设置userData.bili_ticket或userData.cookies')
       }
       let dd = ''
@@ -501,6 +504,12 @@ export function getGuardHistoryList(rid, date) {
 }
 
 export function sendMessage(target, userData, content) {
+  if (!userData || !userData.DedeUserID || !userData.SESSDATA || !userData.bili_jct) {
+    return Promise.reject(new Error('登录信息不完整，请退出账号后重新扫码登录'))
+  }
+  if (!target || !/^\d+$/.test(String(target))) {
+    return Promise.reject(new Error('私信目标 UID 无效'))
+  }
   return getWbiKeys(userData)
     .then(wbiKey => {
       let wts = Math.floor(Date.now() / 1000)
