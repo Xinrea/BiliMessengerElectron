@@ -649,6 +649,9 @@ function guid(upperCase = false) {
   return upperCase ? value.toUpperCase() : value
 }
 
+const GIFT_STREAM_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36'
+
 function getReceivedGifts(userData, gift_id, begin_time) {
   return new Promise((resolve, reject) => {
     try {
@@ -662,7 +665,9 @@ function getReceivedGifts(userData, gift_id, begin_time) {
         port: 443,
         method: 'GET',
         headers: {
-          cookie: cookieString(userData)
+          cookie: cookieString(userData),
+          Referer: 'https://link.bilibili.com/p/center/index',
+          'User-Agent': GIFT_STREAM_UA
         }
       }
       let req = https.request(options, (res) => {
@@ -671,7 +676,12 @@ function getReceivedGifts(userData, gift_id, begin_time) {
           dd += chunk
         })
         res.on('end', () => {
-          let resp = JSON.parse(dd.toString())
+          let text = dd.toString()
+          if (text.trim().startsWith('<')) {
+            reject(new Error('礼物流水接口返回了 HTML，请求被风控拦截'))
+            return
+          }
+          let resp = JSON.parse(text)
           if (resp.code === 0) {
             resolve(resp.data)
           } else {
