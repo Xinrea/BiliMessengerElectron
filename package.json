@@ -1,6 +1,6 @@
 {
   "name": "bilimessenger",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "author": "Xinrea <s11s@vip.qq.com>",
   "description": "tools for bilibili message management",
   "license": "GPL-3.0",
@@ -11,6 +11,7 @@
     "build:clean": "cross-env BUILD_TARGET=clean node .electron-vue/build.js",
     "build:web": "cross-env BUILD_TARGET=web node .electron-vue/build.js",
     "dev": "node .electron-vue/dev-runner.js",
+    "test:gift-stream": "node tests/gift-stream.test.js",
     "lint": "eslint --ext .js,.vue -f ./node_modules/eslint-friendly-formatter src",
     "lint:fix": "eslint --ext .js,.vue -f ./node_modules/eslint-friendly-formatter --fix src",
     "pack": "npm run pack:main && npm run pack:renderer",

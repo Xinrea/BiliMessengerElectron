@@ -665,6 +665,9 @@ export default {
         })
     },
     updateListFromRange() {
+      if (this.datePick.range.length !== 2) {
+        return
+      }
       let that = this
       let loginResponse = this.Store.get('loginResponse', null)
       if (loginResponse === null) {

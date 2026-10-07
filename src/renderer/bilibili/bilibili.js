@@ -650,22 +650,41 @@ function guid(upperCase = false) {
 }
 
 const GIFT_STREAM_UA =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36'
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36'
+const GUARD_GOODS_NAMES = { 5: '总督', 6: '提督', 7: '舰长' }
+const GIFT_STREAM_QUERY_TIMEOUT = 180 * 1000
 
-function getReceivedGifts(userData, gift_id, begin_time) {
+function getReceivedGifts(userData, begin_date, end_date, page) {
   return new Promise((resolve, reject) => {
     try {
+      let cookie = cookieString(userData)
+      let csrf = parseCookieString(cookie).bili_jct
+      if (!csrf) {
+        reject(new Error('登录信息不完整，请退出账号后重新扫码登录'))
+        return
+      }
+      let postData = querystring.stringify({
+        page: page,
+        gift_id: 0,
+        begin_date: begin_date,
+        end_date: end_date,
+        uname: '',
+        // 新接口使用 goods_id 筛选大航海，旧接口的 10001/10002/10003 已不适用。
+        goods_id: Object.keys(GUARD_GOODS_NAMES).join(','),
+        csrf_token: csrf,
+        csrf: csrf
+      })
       let options = {
         hostname: 'api.live.bilibili.com',
-        path:
-          '/xlive/revenue/v1/giftStream/getReceivedGiftStreamNextList?limit=20000&gift_id=' +
-          gift_id.toString() +
-          '&begin_time=' +
-          begin_time,
+        path: '/xlive/revenue/v1/giftStream/getReceivedGiftStream',
         port: 443,
-        method: 'GET',
+        method: 'POST',
         headers: {
-          cookie: cookieString(userData),
+          cookie: cookie,
+          Accept: 'application/json, text/plain, */*',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(postData),
+          Origin: 'https://link.bilibili.com',
           Referer: 'https://link.bilibili.com/p/center/index',
           'User-Agent': GIFT_STREAM_UA
         }
@@ -676,72 +695,108 @@ function getReceivedGifts(userData, gift_id, begin_time) {
           dd += chunk
         })
         res.on('end', () => {
-          let text = dd.toString()
-          if (text.trim().startsWith('<')) {
-            reject(new Error('礼物流水接口返回了 HTML，请求被风控拦截'))
-            return
-          }
-          let resp = JSON.parse(text)
-          if (resp.code === 0) {
-            resolve(resp.data)
-          } else {
-            reject(resp)
+          try {
+            let text = dd.toString()
+            if (text.trim().startsWith('<')) {
+              reject(new Error('礼物流水接口返回了 HTML，请求被风控拦截'))
+              return
+            }
+            let resp = JSON.parse(text)
+            if (resp.code === 0) {
+              resolve(resp.data)
+            } else {
+              reject(resp)
+            }
+          } catch (e) {
+            reject(e)
           }
         })
         res.on('error', (err) => {
           reject(err)
         })
       })
-      req.end()
+      req.on('error', reject)
+      req.setTimeout(30000, () => {
+        req.destroy(new Error('礼物流水请求超时，请稍后再试'))
+      })
+      req.end(postData)
     } catch (e) {
       reject(e)
     }
   })
 }
 
-function getReceivedGuards(userData, begin_time) {
-  return new Promise((resolve, reject) => {
-    let guards = []
-    let type_list = [10001, 10002, 10003]
-    let promises = []
-    for (let t of type_list) {
-      promises.push(getReceivedGifts(userData, t, begin_time))
+async function getReceivedGiftPage(userData, begin_date, end_date, page) {
+  let deadline = Date.now() + GIFT_STREAM_QUERY_TIMEOUT
+  let delay = 1000
+  while (Date.now() < deadline) {
+    let data = await getReceivedGifts(userData, begin_date, end_date, page)
+    if (data && data.ready === 1) {
+      return data
     }
-    Promise.all(promises)
-      .then((res) => {
-        for (let r of res) {
-          guards = guards.concat(r.list)
-        }
-        resolve(guards)
-      })
-      .catch((err) => {
-        reject(err)
-      })
-  })
+    if (!data || data.ready !== 0) {
+      throw new Error('礼物流水接口返回了无效数据')
+    }
+    if (Date.now() + delay >= deadline) {
+      break
+    }
+    await new Promise(resolve => setTimeout(resolve, delay))
+    delay = Math.min(delay * 2, 10000)
+  }
+  throw new Error('礼物流水数据查询超时，请稍后再试')
 }
 
-export function getReceivedGuardsByPeriod(userData, begin_time, end_time) {
-  return new Promise((resolve, reject) => {
-    let begin = new Date(begin_time)
-    let end = new Date(end_time)
-    let promises = []
-    for (; begin <= end; begin.setDate(begin.getDate() + 1)) {
-      promises.push(
-        getReceivedGuards(userData, begin.toISOString().split('T')[0])
-      )
+async function getReceivedGuards(userData, begin_date, end_date) {
+  let guards = []
+  let totalPages = 1
+  for (let page = 0; page < totalPages; page++) {
+    let data = await getReceivedGiftPage(userData, begin_date, end_date, page)
+    if (!Array.isArray(data.list)) {
+      throw new Error('礼物流水接口返回了无效列表')
     }
-    Promise.all(promises)
-      .then((res) => {
-        let guards = []
-        for (let r of res) {
-          guards = guards.concat(r)
-        }
-        resolve(guards)
-      })
-      .catch((err) => {
-        reject(err)
-      })
-  })
+    if (page === 0) {
+      totalPages = Number(data.total_page)
+      if (!Number.isInteger(totalPages) || totalPages < 0) {
+        throw new Error('礼物流水接口返回了无效分页')
+      }
+    }
+    guards.push(...data.list.map(gift => ({
+      ...gift,
+      gift_name: GUARD_GOODS_NAMES[gift.goods_id] || gift.name
+    })))
+  }
+  return guards
+}
+
+function parseGiftStreamDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error('请选择有效的日期范围')
+  }
+  let date = new Date(value + 'T00:00:00Z')
+  if (isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    throw new Error('请选择有效的日期范围')
+  }
+  return date
+}
+
+export async function getReceivedGuardsByPeriod(userData, begin_time, end_time) {
+  let begin = parseGiftStreamDate(begin_time)
+  let end = parseGiftStreamDate(end_time)
+  if (begin > end) {
+    throw new Error('开始日期不能晚于结束日期')
+  }
+  let guards = []
+  // 新接口限制单次查询跨度为一个月，按日历月拆分并保留首尾日期。
+  for (; begin <= end; begin.setUTCMonth(begin.getUTCMonth() + 1, 1)) {
+    let monthEnd = new Date(Date.UTC(begin.getUTCFullYear(), begin.getUTCMonth() + 1, 0))
+    let rangeEnd = monthEnd < end ? monthEnd : end
+    guards.push(...await getReceivedGuards(
+      userData,
+      begin.toISOString().slice(0, 10).replace(/-/g, ''),
+      rangeEnd.toISOString().slice(0, 10).replace(/-/g, '')
+    ))
+  }
+  return guards
 }
 
 // https://api.bilibili.com/x/web-interface/nav
