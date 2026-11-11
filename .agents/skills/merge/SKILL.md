@@ -1,7 +1,7 @@
 ---
 name: merge
 description: >-
-  Merge explicitly requested BiliMessengerElectron changes through a GitHub
+  Merge explicitly requested bili-messenger changes through a GitHub
   pull request into main. Invoke only when the user requests merging or landing,
   including /merge, not for review, preparation, passing checks, or skill installation.
 disable-model-invocation: true
@@ -9,11 +9,11 @@ metadata:
   delta-action: land
 ---
 
-# Merge BiliMessengerElectron changes
+# Merge bili-messenger changes
 
 ## Scope and authorization
 
-This workflow applies to `Xinrea/BiliMessengerElectron`. An explicit request
+This workflow applies to `Xinrea/bili-messenger`. An explicit request
 to merge or land the relevant change, including `/merge`, authorizes preparation,
 publication, review follow-up, and the merge described here. Proceed without asking
 for that same authorization again. Do not respond to `/merge` by claiming to await
@@ -32,7 +32,7 @@ rewrite shared history, or publish releases as part of this workflow.
    remotes, and submodule state. Identify precisely the requested change.
    Do not include unrelated files or unpublished commits simply because they are
    present. If their ownership or scope is ambiguous, ask a focused question.
-2. Verify `origin` still identifies `Xinrea/BiliMessengerElectron`. The `local`
+2. Verify `origin` still identifies `Xinrea/bili-messenger`. The `local`
    remote is a checkout backlink, not a publication destination. Check GitHub CLI
    availability and authentication without printing credentials. Check CMake,
    CTest, compiler and platform dependencies before builds. Do not install tools

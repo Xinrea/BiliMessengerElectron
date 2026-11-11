@@ -1550,7 +1550,7 @@ bool bm_bili_check_github_update(
 
     bm_http_resp resp;
     bm_http_req req = {
-        .url = "https://api.github.com/repos/xinrea/BiliMessengerElectron/releases/latest",
+        .url = "https://api.github.com/repos/Xinrea/bili-messenger/releases/latest",
         .method = "GET",
         .user_agent = "BiliMessenger",
         .timeout_ms = 10000

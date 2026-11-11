@@ -1,13 +1,13 @@
 # BiliMessenger
 
-![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/Xinrea/BiliMessengerElectron/release.yml)
-![GitHub release (with filter)](https://img.shields.io/github/v/release/Xinrea/BiliMessengerElectron)
-![GitHub all releases](https://img.shields.io/github/downloads/Xinrea/BiliMessengerElectron/total)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/Xinrea/bili-messenger/release.yml)
+![GitHub release (with filter)](https://img.shields.io/github/v/release/Xinrea/bili-messenger)
+![GitHub all releases](https://img.shields.io/github/downloads/Xinrea/bili-messenger/total)
 
 > Bilibili 舰长私信群发助手（基于 [CUI](https://github.com/yappologistic/CUI) C99 Immediate-Mode UI 框架原生构建）
 
 > [!NOTE]
-> 程序下载地址：[https://github.com/Xinrea/BiliMessengerElectron/releases](https://github.com/Xinrea/BiliMessengerElectron/releases)
+> 程序下载地址：[https://github.com/Xinrea/bili-messenger/releases](https://github.com/Xinrea/bili-messenger/releases)
 
 ## 特性
 
