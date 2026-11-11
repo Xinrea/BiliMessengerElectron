@@ -28,19 +28,13 @@ void bm_page_about(cui_ctx *ui, bm_app *app) {
 
         cui_row(ui, .gap = 8, .wrap = true) {
             if (cui_button(ui, "GitHub 仓库", .icon = CUI_ICON_EXTERNAL_LINK, .variant = CUI_BUTTON_OUTLINE, .size = CUI_SIZE_SM)) {
-                cui_app_open_url("https://github.com/Xinrea/BiliMessengerElectron");
+                cui_app_open_url("https://github.com/Xinrea/bili-messenger");
             }
             if (cui_button(ui, "作者 Bilibili (@Xinrea)", .icon = CUI_ICON_EXTERNAL_LINK, .variant = CUI_BUTTON_OUTLINE, .size = CUI_SIZE_SM)) {
                 cui_app_open_url("https://space.bilibili.com/475210");
             }
-            if (cui_button(ui, "Joi Club 官网", .icon = CUI_ICON_GLOBE, .variant = CUI_BUTTON_OUTLINE, .size = CUI_SIZE_SM)) {
-                cui_app_open_url("https://joi-club.cn");
-            }
-            if (cui_button(ui, "CUI 界面框架", .icon = CUI_ICON_CODE, .variant = CUI_BUTTON_OUTLINE, .size = CUI_SIZE_SM)) {
-                cui_app_open_url("https://github.com/yappologistic/CUI");
-            }
-            if (cui_button(ui, "问题反馈 (Issues)", .icon = CUI_ICON_MESSAGE_SQUARE, .variant = CUI_BUTTON_OUTLINE, .size = CUI_SIZE_SM)) {
-                cui_app_open_url("https://github.com/Xinrea/BiliMessengerElectron/issues");
+            if (cui_button(ui, "PowerLive 官网", .icon = CUI_ICON_GLOBE, .variant = CUI_BUTTON_OUTLINE, .size = CUI_SIZE_SM)) {
+                cui_app_open_url("https://powerlive.io/");
             }
         }
     }
