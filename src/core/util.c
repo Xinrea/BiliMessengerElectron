@@ -3,6 +3,7 @@
 #endif
 
 #include "core/util.h"
+#include "core/diagnostics.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -390,7 +391,7 @@ bool bm_default_config_path(char *out, size_t cap) {
 #endif
 }
 
-bool bm_read_file(const char *path, char **out_buf, size_t *out_len) {
+static bool read_file(const char *path, char **out_buf, size_t *out_len) {
     if (!path || !out_buf) return false;
     FILE *f = fopen(path, "rb");
     if (!f) return false;
@@ -417,11 +418,25 @@ bool bm_read_file(const char *path, char **out_buf, size_t *out_len) {
     return true;
 }
 
-bool bm_write_file(const char *path, const void *data, size_t len) {
+bool bm_read_file(const char *path, char **out_buf, size_t *out_len) {
+    size_t bytes = 0;
+    bool ok = read_file(path, out_buf, &bytes);
+    if (ok && out_len) *out_len = bytes;
+    bm_diagnostics_event(BM_EVENT_FILE_READ, ok ? BM_LOG_INFO : BM_LOG_WARNING, ok ? 0 : 1, (int64_t)bytes);
+    return ok;
+}
+
+static bool write_file(const char *path, const void *data, size_t len) {
     if (!path) return false;
     FILE *f = fopen(path, "wb");
     if (!f) return false;
     size_t n = len > 0 ? fwrite(data, 1, len, f) : 0;
     fclose(f);
     return n == len;
+}
+
+bool bm_write_file(const char *path, const void *data, size_t len) {
+    bool ok = write_file(path, data, len);
+    bm_diagnostics_event(BM_EVENT_FILE_WRITE, ok ? BM_LOG_INFO : BM_LOG_ERROR, ok ? 0 : 1, (int64_t)len);
+    return ok;
 }

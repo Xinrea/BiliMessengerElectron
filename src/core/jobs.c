@@ -1,4 +1,5 @@
 #include "core/jobs.h"
+#include "core/diagnostics.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -71,7 +72,9 @@ typedef struct {
 #if defined(_WIN32)
 static unsigned __stdcall job_thread_entry(void *raw) {
     job_runner_arg *ja = (job_runner_arg *)raw;
+    bm_diagnostics_event(BM_EVENT_JOB_START, BM_LOG_INFO, 0, 0);
     ja->fn(ja->arg);
+    bm_diagnostics_event(BM_EVENT_JOB_FINISH, BM_LOG_INFO, 0, 0);
     free(ja);
     lock_queue();
     g_active_jobs--;
@@ -81,7 +84,9 @@ static unsigned __stdcall job_thread_entry(void *raw) {
 #else
 static void *job_thread_entry(void *raw) {
     job_runner_arg *ja = (job_runner_arg *)raw;
+    bm_diagnostics_event(BM_EVENT_JOB_START, BM_LOG_INFO, 0, 0);
     ja->fn(ja->arg);
+    bm_diagnostics_event(BM_EVENT_JOB_FINISH, BM_LOG_INFO, 0, 0);
     free(ja);
     lock_queue();
     g_active_jobs--;
@@ -91,10 +96,16 @@ static void *job_thread_entry(void *raw) {
 #endif
 
 bool bm_job_spawn(bm_job_fn fn, void *arg) {
-    if (!fn) return false;
+    if (!fn) {
+        bm_diagnostics_event(BM_EVENT_JOB_FAILED, BM_LOG_ERROR, 1, 0);
+        return false;
+    }
     bm_jobs_init();
     job_runner_arg *ja = (job_runner_arg *)malloc(sizeof *ja);
-    if (!ja) return false;
+    if (!ja) {
+        bm_diagnostics_event(BM_EVENT_JOB_FAILED, BM_LOG_ERROR, 2, 0);
+        return false;
+    }
     ja->fn = fn;
     ja->arg = arg;
 
@@ -105,6 +116,7 @@ bool bm_job_spawn(bm_job_fn fn, void *arg) {
 #if defined(_WIN32)
     uintptr_t h = _beginthreadex(NULL, 0, job_thread_entry, ja, 0, NULL);
     if (!h) {
+        bm_diagnostics_event(BM_EVENT_JOB_FAILED, BM_LOG_ERROR, 3, 0);
         lock_queue();
         g_active_jobs--;
         unlock_queue();
@@ -116,6 +128,7 @@ bool bm_job_spawn(bm_job_fn fn, void *arg) {
 #else
     pthread_t tid;
     if (pthread_create(&tid, NULL, job_thread_entry, ja) != 0) {
+        bm_diagnostics_event(BM_EVENT_JOB_FAILED, BM_LOG_ERROR, 3, 0);
         lock_queue();
         g_active_jobs--;
         unlock_queue();
@@ -131,7 +144,10 @@ void bm_job_post_main(bm_main_cb cb, void *data) {
     if (!cb) return;
     bm_jobs_init();
     bm_posted_event *ev = (bm_posted_event *)malloc(sizeof *ev);
-    if (!ev) return;
+    if (!ev) {
+        bm_diagnostics_event(BM_EVENT_CALLBACK_FAILED, BM_LOG_ERROR, 2, 0);
+        return;
+    }
     ev->cb = cb;
     ev->data = data;
     ev->next = NULL;

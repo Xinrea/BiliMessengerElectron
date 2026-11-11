@@ -16,6 +16,7 @@ typedef struct {
 static void on_account_loaded(void *raw, void *user) {
     account_job_data *d = (account_job_data *)raw;
     bm_app *app = (bm_app *)user;
+    bm_diagnostics_event(BM_EVENT_ACCOUNT_CHECK, d->ok ? BM_LOG_INFO : BM_LOG_WARNING, d->err.code, 0);
     if (d->ok) {
         app->account_profile = d->prof;
         bm_store_save(&app->store);
@@ -165,6 +166,7 @@ static void on_qr_polled(void *raw, void *user) {
     }
 
     if (d->login_complete) {
+        bm_diagnostics_event(BM_EVENT_LOGIN, BM_LOG_INFO, 0, 0);
         app->store.login = d->resolved_login;
         app->account_profile = d->prof;
         app->qr_key[0] = '\0';
@@ -209,6 +211,7 @@ typedef struct {
 static void on_room_saved(void *raw, void *user) {
     save_room_job *d = (save_room_job *)raw;
     bm_app *app = (bm_app *)user;
+    bm_diagnostics_event(BM_EVENT_ROOM_BIND, d->ok ? BM_LOG_INFO : BM_LOG_WARNING, d->err.code, 0);
     app->room_saving = false;
     if (!d->ok) {
         bm_toast_push(app, "无法保存：无效的直播间号", d->err.message, CUI_TONE_DANGER);

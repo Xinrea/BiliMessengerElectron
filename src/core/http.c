@@ -1,8 +1,10 @@
 #include "core/http.h"
+#include "core/diagnostics.h"
 #include "core/util.h"
 
 #include <ctype.h>
 #include <curl/curl.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -64,24 +66,36 @@ static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata
     } else if (starts_with_icase(line, "Location:")) {
         char *val = bm_trim(line + 9);
         bm_strlcpy(resp->location, val, sizeof resp->location);
+    } else if (starts_with_icase(line, "Retry-After:")) {
+        char *val = bm_trim(line + 12), *end = NULL;
+        errno = 0;
+        long seconds = strtol(val, &end, 10);
+        if (!errno && end != val && !*end && seconds >= 0) {
+            resp->retry_after_seconds = seconds;
+        }
     }
     return total;
 }
 
 bool bm_http_request(const bm_http_req *req, bm_http_resp *resp) {
+    int64_t started = bm_now_ms();
     memset(resp, 0, sizeof *resp);
     if (!req || !req->url || !req->url[0]) {
         bm_strlcpy(resp->error, "Invalid URL", sizeof resp->error);
+        bm_diagnostics_http(req, resp, CURLE_URL_MALFORMAT, bm_now_ms() - started);
         return false;
     }
 
     if (g_mock_fn) {
-        return g_mock_fn(req, resp, g_mock_user);
+        bool ok = g_mock_fn(req, resp, g_mock_user);
+        bm_diagnostics_http(req, resp, ok ? 0 : -1, bm_now_ms() - started);
+        return ok;
     }
 
     CURL *curl = curl_easy_init();
     if (!curl) {
         bm_strlcpy(resp->error, "Failed to initialize CURL", sizeof resp->error);
+        bm_diagnostics_http(req, resp, CURLE_FAILED_INIT, bm_now_ms() - started);
         return false;
     }
 
@@ -133,8 +147,31 @@ bool bm_http_request(const bm_http_req *req, bm_http_resp *resp) {
         }
     }
 
+    curl_mime *mime = NULL;
     bool is_post = (req->method && strcmp(req->method, "POST") == 0);
-    if (is_post) {
+    if (is_post && req->parts && req->part_count > 0) {
+        mime = curl_mime_init(curl);
+        bool valid = mime != NULL;
+        for (int i = 0; valid && i < req->part_count; i++) {
+            curl_mimepart *part = curl_mime_addpart(mime);
+            valid = part && curl_mime_name(part, req->parts[i].name) == CURLE_OK
+                && curl_mime_data(part, req->parts[i].data, req->parts[i].size) == CURLE_OK;
+            if (valid && req->parts[i].filename)
+                valid = curl_mime_filename(part, req->parts[i].filename) == CURLE_OK;
+            if (valid && req->parts[i].content_type)
+                valid = curl_mime_type(part, req->parts[i].content_type) == CURLE_OK;
+        }
+        if (!valid) {
+            bm_strlcpy(resp->error, "Failed to build multipart request", sizeof resp->error);
+            bm_diagnostics_http(req, resp, CURLE_OUT_OF_MEMORY, bm_now_ms() - started);
+            curl_mime_free(mime);
+            curl_slist_free_all(headers);
+            curl_easy_cleanup(curl);
+            return false;
+        }
+        curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+        headers = curl_slist_append(headers, "Expect:");
+    } else if (is_post) {
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
         const char *body = req->body ? req->body : "";
         size_t blen = req->body_len > 0 ? req->body_len : strlen(body);
@@ -148,8 +185,8 @@ bool bm_http_request(const bm_http_req *req, bm_http_resp *resp) {
     }
 
     CURLcode res = curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &resp->status);
     if (res == CURLE_OK) {
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &resp->status);
         resp->ok = true;
     } else {
         resp->ok = false;
@@ -157,7 +194,9 @@ bool bm_http_request(const bm_http_req *req, bm_http_resp *resp) {
         bm_strlcpy(resp->error, curl_easy_strerror(res), sizeof resp->error);
     }
 
+    bm_diagnostics_http(req, resp, (int)res, bm_now_ms() - started);
     if (headers) curl_slist_free_all(headers);
+    curl_mime_free(mime);
     curl_easy_cleanup(curl);
     return resp->ok;
 }

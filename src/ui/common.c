@@ -5,9 +5,14 @@
 #include <string.h>
 
 void bm_app_init(bm_app *app) {
+    bm_diagnostics_event(BM_EVENT_APP_START, BM_LOG_INFO, 0, 0);
     memset(app, 0, sizeof *app);
     bm_store_init(&app->store);
     bm_store_load(&app->store, NULL);
+    snprintf(app->feedback_path, sizeof app->feedback_path, "%s.feedback.json", app->store.path);
+    app->feedback.include_log = true;
+    app->feedback_load_failed = !app->store.path[0]
+        || !bm_feedback_load(&app->feedback, app->feedback_path);
 
     app->filters.type1 = true;
     app->filters.type2 = true;
@@ -45,6 +50,7 @@ void bm_app_init(bm_app *app) {
 
 void bm_app_shutdown(bm_app *app, cui_ctx *ui) {
     if (!app) return;
+    bm_diagnostics_event(BM_EVENT_APP_STOP, BM_LOG_INFO, 0, 0);
     if (app->qr_tex && ui) {
         cui_image_destroy(ui, app->qr_tex);
         app->qr_tex = 0;

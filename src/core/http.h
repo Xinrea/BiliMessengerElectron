@@ -6,6 +6,14 @@
 
 #define BM_MAX_SET_COOKIES 16
 
+typedef struct bm_http_part {
+    const char *name;
+    const char *data;
+    size_t size;
+    const char *filename;     /* optional file part, data is already a fixed snapshot */
+    const char *content_type;
+} bm_http_part;
+
 typedef struct bm_http_req {
     const char *url;
     const char *method;        /* NULL or "GET" or "POST" */
@@ -21,6 +29,8 @@ typedef struct bm_http_req {
     int extra_header_count;
     int timeout_ms;            /* default 30000 */
     bool no_follow_redirect;   /* if true, do not automatically follow 3xx redirects */
+    const bm_http_part *parts; /* optional multipart POST; libcurl owns the boundary */
+    int part_count;
 } bm_http_req;
 
 typedef struct bm_http_resp {
@@ -33,6 +43,7 @@ typedef struct bm_http_resp {
     char set_cookies[BM_MAX_SET_COOKIES][512];
     int set_cookie_count;
     char error[256];
+    long retry_after_seconds;
 } bm_http_resp;
 
 typedef bool (*bm_http_mock_fn)(const bm_http_req *req, bm_http_resp *resp, void *user);

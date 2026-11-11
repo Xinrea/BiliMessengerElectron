@@ -1,4 +1,5 @@
 #include "core/store.h"
+#include "core/diagnostics.h"
 #include "core/util.h"
 #include "cJSON.h"
 
@@ -139,7 +140,7 @@ static bool ensure_code_cap(bm_store *s, int needed) {
     return true;
 }
 
-bool bm_store_load(bm_store *s, const char *path) {
+static bool store_load(bm_store *s, const char *path) {
     if (!s) return false;
     if (path && path[0]) {
         bm_strlcpy(s->path, path, sizeof s->path);
@@ -228,7 +229,13 @@ bool bm_store_load(bm_store *s, const char *path) {
     return true;
 }
 
-bool bm_store_save(const bm_store *s) {
+bool bm_store_load(bm_store *s, const char *path) {
+    bool ok = store_load(s, path);
+    bm_diagnostics_event(BM_EVENT_CONFIG_LOAD, ok ? BM_LOG_INFO : BM_LOG_WARNING, ok ? 0 : 1, 0);
+    return ok;
+}
+
+static bool store_save(const bm_store *s) {
     if (!s || !s->path[0]) return false;
 
     cJSON *root = cJSON_CreateObject();
@@ -284,6 +291,12 @@ bool bm_store_save(const bm_store *s) {
     if (!text) return false;
     bool ok = bm_write_file(s->path, text, strlen(text));
     free(text);
+    return ok;
+}
+
+bool bm_store_save(const bm_store *s) {
+    bool ok = store_save(s);
+    bm_diagnostics_event(BM_EVENT_CONFIG_SAVE, ok ? BM_LOG_INFO : BM_LOG_ERROR, ok ? 0 : 1, 0);
     return ok;
 }
 

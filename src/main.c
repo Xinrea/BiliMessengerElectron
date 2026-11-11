@@ -421,6 +421,7 @@ static void app_frame(cui_ctx *ui, void *user) {
 
     render_command_palette(ui, app);
     render_update_dialog(ui, app);
+    bm_render_feedback_dialog(ui, app);
 }
 
 int main(void) {
@@ -447,6 +448,13 @@ int main(void) {
     }
     if (getenv("BM_IMPORT_DIALOG")) {
         app.import_guard_dialog = true;
+    }
+    if (getenv("BM_FEEDBACK_DIALOG")) {
+        app.feedback_dialog = true;
+        if (!strcmp(getenv("BM_FEEDBACK_DIALOG"), "preview") && app.feedback.include_log) {
+            if (!app.feedback.log[0]) bm_feedback_capture_log(&app.feedback);
+            app.feedback_log_preview = true;
+        }
     }
     bm_setting_startup_checks(&app);
 
