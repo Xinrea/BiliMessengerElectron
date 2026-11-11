@@ -2,6 +2,7 @@
 #define BM_APP_H
 
 #include "core/bili.h"
+#include "core/feedback.h"
 #include "core/guards.h"
 #include "core/jobs.h"
 #include "core/store.h"
@@ -119,6 +120,17 @@ typedef struct bm_app {
     bool qr_polling;
     int64_t qr_last_poll_ms;
 
+    /* About page: persisted anonymous report, independent of Bilibili login */
+    bm_feedback feedback;
+    bm_feedback_result feedback_result;
+    char feedback_path[1100];
+    bool feedback_load_failed;
+    bool feedback_save_failed;
+    bool feedback_busy;
+    bool feedback_uploading;
+    bool feedback_log_preview;
+    bool feedback_dialog;
+
     /* Update check */
     bool update_dialog;
     char update_tag[64];
@@ -157,5 +169,6 @@ void bm_setting_refresh_account(bm_app *app);
 void bm_setting_startup_checks(bm_app *app);
 
 void bm_page_about(cui_ctx *ui, bm_app *app);
+void bm_render_feedback_dialog(cui_ctx *ui, bm_app *app);
 
 #endif /* BM_APP_H */

@@ -27,6 +27,8 @@ add_library(bm_core STATIC
     src/core/util.c
     src/core/md5.c
     src/core/http.c
+    src/core/diagnostics.c
+    src/core/feedback.c
     src/core/jobs.c
     src/core/store.c
     src/core/bili.c
@@ -98,11 +100,28 @@ if(BM_BUILD_TESTS)
     enable_testing()
     add_executable(bm_tests tests/test_core.c)
     target_link_libraries(bm_tests PRIVATE bm_core)
+    add_executable(bm_feedback_tests tests/test_feedback.c)
+    target_link_libraries(bm_feedback_tests PRIVATE bm_core)
+    add_executable(bm_feedback_ui_tests tests/test_feedback_ui.c src/pages/about.c)
+    target_link_libraries(bm_feedback_ui_tests PRIVATE bm_core cui::cui)
     # Test assertions (including calls under test) must run in Release too.
     if(MSVC)
         target_compile_options(bm_tests PRIVATE /UNDEBUG)
+        target_compile_options(bm_feedback_tests PRIVATE /UNDEBUG)
+        target_compile_options(bm_feedback_ui_tests PRIVATE /UNDEBUG)
     else()
         target_compile_options(bm_tests PRIVATE -UNDEBUG)
+        target_compile_options(bm_feedback_tests PRIVATE -UNDEBUG)
+        target_compile_options(bm_feedback_ui_tests PRIVATE -UNDEBUG)
     endif()
     add_test(NAME bm_tests COMMAND bm_tests)
+    add_test(NAME bm_feedback_tests COMMAND bm_feedback_tests)
+    add_test(NAME bm_feedback_ui_tests COMMAND bm_feedback_ui_tests)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME bm_feedback_http
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_feedback_http.py
+                    $<TARGET_FILE:bm_feedback_tests>)
+        set_tests_properties(bm_feedback_http PROPERTIES TIMEOUT 20)
+    endif()
 endif()

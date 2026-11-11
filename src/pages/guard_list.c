@@ -61,6 +61,7 @@ typedef struct {
 static void on_snapshot_loaded(void *raw, void *user) {
     snapshot_job_data *d = (snapshot_job_data *)raw;
     bm_app *app = (bm_app *)user;
+    bm_diagnostics_event(BM_EVENT_GUARD_SNAPSHOT, d->ok ? BM_LOG_INFO : BM_LOG_ERROR, d->err.code, d->list.count);
     app->guard_loading = false;
     if (d->ok) {
         bm_guard_list_copy(&app->store.original_guards, &d->list);
@@ -118,6 +119,7 @@ typedef struct {
 static void on_gift_loaded(void *raw, void *user) {
     gift_job_data *d = (gift_job_data *)raw;
     bm_app *app = (bm_app *)user;
+    bm_diagnostics_event(BM_EVENT_GIFT_HISTORY, d->ok ? BM_LOG_INFO : BM_LOG_ERROR, d->err.code, d->list.count);
     app->guard_loading = false;
     if (d->ok) {
         bm_guard_list_copy(&app->store.original_guards, &d->list);

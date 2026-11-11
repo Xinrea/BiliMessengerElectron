@@ -52,6 +52,7 @@ static void trigger_next_send_step(bm_app *app);
 static void on_send_step_done(void *raw, void *user) {
     send_step_job *d = (send_step_job *)raw;
     bm_app *app = (bm_app *)user;
+    bm_diagnostics_event(BM_EVENT_MESSAGE_SEND, d->ok ? BM_LOG_INFO : BM_LOG_ERROR, d->err.code, 1);
 
     if (!d->ok) {
         char title[160];
@@ -89,6 +90,7 @@ static void send_step_worker(void *raw) {
 
 static void trigger_next_send_step(bm_app *app) {
     if (app->store.guards.count == 0) {
+        bm_diagnostics_event(BM_EVENT_BATCH_FINISH, BM_LOG_INFO, 0, app->msg_remain_list.count);
         app->msg_in_progress = false;
         app->msg_is_recalling = false;
         bm_guard_list_copy(&app->store.guards, &app->msg_remain_list);
@@ -104,6 +106,7 @@ static void trigger_next_send_step(bm_app *app) {
     const char *tpl = current_template_content(app);
     bool use_code = strstr(tpl, "{code}") != NULL;
     if (use_code && app->store.code_count <= 0) {
+        bm_diagnostics_event(BM_EVENT_BATCH_STOP, BM_LOG_WARNING, 1, 0); /* No redemption codes left. */
         app->msg_in_progress = false;
         bm_toast_push(app, "兑换码已耗尽，群发中止", NULL, CUI_TONE_DANGER);
         return;
@@ -145,6 +148,8 @@ static void trigger_next_recall_step(bm_app *app);
 static void on_recall_step_done(void *raw, void *user) {
     recall_step_job *d = (recall_step_job *)raw;
     bm_app *app = (bm_app *)user;
+    bm_diagnostics_event(BM_EVENT_MESSAGE_RECALL, d->ok ? BM_LOG_INFO : BM_LOG_WARNING,
+                         d->skipped_timeout ? 120 : d->err.code, 1);
 
     if (d->skipped_timeout) {
         char title[160];
