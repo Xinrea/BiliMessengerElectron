@@ -1172,11 +1172,12 @@ static bool get_received_gift_page(
             *out_data = data;
             return true;
         }
-        cJSON_Delete(root);
         if (!cJSON_IsNumber(ready) || ready->valueint != 0) {
+            cJSON_Delete(root);
             set_err(err, -1, "礼物流水接口返回了无效数据");
             return false;
         }
+        cJSON_Delete(root);
         if (bm_now_ms() + delay >= deadline) {
             break;
         }

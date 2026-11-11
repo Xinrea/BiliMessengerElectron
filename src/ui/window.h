@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 void bm_window_setup(void *native_window);
+void bm_window_set_drag_rect(void *native_window, float x, float y, float w, float h);
 void bm_window_drag(void *native_window);
 void bm_window_minimize(void *native_window);
 void bm_window_maximize_toggle(void *native_window);

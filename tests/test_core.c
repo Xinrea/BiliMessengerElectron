@@ -5,6 +5,9 @@
 #include "core/store.h"
 #include "core/util.h"
 
+#ifdef NDEBUG
+#error "bm_tests requires assertions enabled in every build configuration"
+#endif
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -427,22 +430,22 @@ static void test_guards_templates_and_store(void) {
 }
 
 static void test_electron_store_config_compat(void) {
-    const char *path = "/tmp/bm_test_config_compat.json";
+    /* CTest runs in the build directory, keeping fixtures local and allowing
+       Debug and Release tests to run independently. */
+    const char *path = "bm_test_config_compat.json";
+    /* Match the keys written by Electron v1.5.5: SettingPage, TemplatePage,
+       GuardListPage and the codes store. darkMode is a native extension. */
     const char *sample_json =
         "{\n"
-        "  \"room\": 21672023,\n"
-        "  \"sendInterval\": 1500,\n"
-        "  \"dark\": true,\n"
-        "  \"bili_buvid3\": \"BUVID-TEST-123\",\n"
-        "  \"bili_dev_id\": \"DEVID-TEST-456\",\n"
+        "  \"roomID\": \"21672023\",\n"
+        "  \"setting\": {\"sendInterval\": 1500, \"darkMode\": false},\n"
         "  \"loginResponse\": {\n"
-        "    \"url\": \"https://passport.biligame.com/x/passport-login/web/crossDomain?DedeUserID=475210&SESSDATA=sess_abc&bili_jct=csrf_xyz\",\n"
-        "    \"cookies\": [\"SESSDATA=sess_abc\", \"bili_jct=csrf_xyz\", \"DedeUserID=475210\"]\n"
-        "  },\n"
-        "  \"userInfo\": {\n"
-        "    \"name\": \"Tester\",\n"
-        "    \"mid\": 475210,\n"
-        "    \"face\": \"https://i0.hdslb.com/bfs/face/member/noface.jpg\"\n"
+        "    \"DedeUserID\": \"475210\",\n"
+        "    \"SESSDATA\": \"sess_abc\",\n"
+        "    \"bili_jct\": \"csrf_xyz\",\n"
+        "    \"buvid3\": \"BUVID-TEST-123\",\n"
+        "    \"dev_id\": \"DEVID-TEST-456\",\n"
+        "    \"cookies\": \"SESSDATA=sess_abc; bili_jct=csrf_xyz; DedeUserID=475210\"\n"
         "  },\n"
         "  \"guards\": [\n"
         "    {\"uid\": 1001, \"username\": \"GuardA\", \"guard_level\": 3, \"face\": \"https://example.com/a.jpg\"}\n"
@@ -450,45 +453,64 @@ static void test_electron_store_config_compat(void) {
         "  \"originalGuards\": [\n"
         "    {\"uid\": 1001, \"username\": \"GuardA\", \"guard_level\": 3, \"face\": \"https://example.com/a.jpg\"}\n"
         "  ],\n"
-        "  \"templates\": {\n"
-        "    \"欢迎模板\": {\"name\": \"欢迎模板\", \"content\": \"你好 {name}\"}\n"
-        "  },\n"
-        "  \"codes\": [\"CODE-1\", \"CODE-2\"],\n"
-        "  \"sentList\": [\n"
-        "    {\"target\": {\"uid\": 1001, \"username\": \"GuardA\", \"guard_level\": 3}, \"msg_key\": \"7358025918471634945\", \"sent_at\": 1700000000000}\n"
-        "  ]\n"
+        "  \"templateList\": [\"欢迎模板\"],\n"
+        "  \"template:欢迎模板\": \"你好 {name}\",\n"
+        "  \"codes\": [\"CODE-1\", \"CODE-2\"]\n"
         "}\n";
 
-    assert(bm_write_file_bytes(path, sample_json, strlen(sample_json)));
+    assert(bm_write_file(path, sample_json, strlen(sample_json)));
 
     bm_store s;
     bm_store_init(&s);
-    assert(bm_store_load_file(&s, path));
+    assert(bm_store_load(&s, path));
     assert(strcmp(s.room_id, "21672023") == 0);
     assert(s.send_interval == 1500);
-    assert(s.dark_mode == true);
+    assert(s.dark_mode == false);
     assert(s.login.has_login == true);
-    assert(strcmp(s.login.dede_user_id, "475210") == 0);
+    assert(strcmp(s.login.DedeUserID, "475210") == 0);
+    assert(strcmp(s.login.SESSDATA, "sess_abc") == 0);
     assert(strcmp(s.login.bili_jct, "csrf_xyz") == 0);
-    assert(strcmp(s.user_info.name, "Tester") == 0);
+    assert(strcmp(s.login.buvid3, "BUVID-TEST-123") == 0);
+    assert(strcmp(s.login.dev_id, "DEVID-TEST-456") == 0);
+    assert(strcmp(s.login.cookies, "SESSDATA=sess_abc; bili_jct=csrf_xyz; DedeUserID=475210") == 0);
     assert(s.guards.count == 1 && s.guards.items[0].uid == 1001);
+    assert(strcmp(s.guards.items[0].username, "GuardA") == 0);
+    assert(s.guards.items[0].guard_level == 3);
+    assert(s.original_guards.count == 1 && s.original_guards.items[0].uid == 1001);
     assert(s.template_count == 1 && strcmp(s.templates[0].name, "欢迎模板") == 0);
-    assert(s.code_count == 2 && strcmp(s.codes[0], "CODE-1") == 0);
-    assert(s.sent_count == 1 && strcmp(s.sent_list[0].msg_key, "7358025918471634945") == 0);
+    assert(strcmp(bm_store_get_template(&s, "欢迎模板"), "你好 {name}") == 0);
+    assert(s.code_count == 2 && strcmp(s.codes[0].code, "CODE-1") == 0);
 
-    assert(bm_store_add_codes_multiline(&s, "CODE-2\nCODE-3\n\nCODE-4") == 2);
+    assert(bm_store_import_codes(&s, "CODE-2\nCODE-3\n\nCODE-4") == 2);
     assert(s.code_count == 4);
-    assert(bm_store_save_file(&s, path));
+    assert(bm_store_save(&s));
     bm_store_free(&s);
 
     bm_store s2;
     bm_store_init(&s2);
-    assert(bm_store_load_file(&s2, path));
+    assert(bm_store_load(&s2, path));
+    assert(strcmp(s2.room_id, "21672023") == 0);
+    assert(s2.send_interval == 1500 && s2.dark_mode == false);
+    assert(s2.login.has_login == true);
+    assert(strcmp(s2.login.DedeUserID, "475210") == 0);
+    assert(strcmp(s2.login.SESSDATA, "sess_abc") == 0);
+    assert(strcmp(s2.login.bili_jct, "csrf_xyz") == 0);
+    assert(strcmp(s2.login.buvid3, "BUVID-TEST-123") == 0);
+    assert(strcmp(s2.login.dev_id, "DEVID-TEST-456") == 0);
+    assert(strcmp(s2.login.cookies, "SESSDATA=sess_abc; bili_jct=csrf_xyz; DedeUserID=475210") == 0);
+    assert(s2.guards.count == 1 && s2.guards.items[0].uid == 1001);
+    assert(strcmp(s2.guards.items[0].username, "GuardA") == 0);
+    assert(s2.guards.items[0].guard_level == 3);
+    assert(s2.original_guards.count == 1 && s2.original_guards.items[0].uid == 1001);
+    assert(s2.template_count == 1 && strcmp(s2.templates[0].name, "欢迎模板") == 0);
+    assert(strcmp(bm_store_get_template(&s2, "欢迎模板"), "你好 {name}") == 0);
     assert(s2.code_count == 4);
-    assert(strcmp(s2.codes[3], "CODE-4") == 0);
-    assert(strcmp(s2.sent_list[0].msg_key, "7358025918471634945") == 0);
+    assert(strcmp(s2.codes[0].code, "CODE-1") == 0);
+    assert(strcmp(s2.codes[1].code, "CODE-2") == 0);
+    assert(strcmp(s2.codes[2].code, "CODE-3") == 0);
+    assert(strcmp(s2.codes[3].code, "CODE-4") == 0);
     bm_store_free(&s2);
-    remove(path);
+    assert(remove(path) == 0);
     printf("PASS electron-store config.json load/save compatibility\n");
 }
 

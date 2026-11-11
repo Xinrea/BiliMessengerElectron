@@ -20,6 +20,10 @@ void bm_window_setup(void *native_window) {
                  SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 }
 
+void bm_window_set_drag_rect(void *native_window, float x, float y, float w, float h) {
+    (void)native_window; (void)x; (void)y; (void)w; (void)h;
+}
+
 void bm_window_drag(void *native_window) {
     if (!native_window) return;
     HWND hwnd = (HWND)native_window;

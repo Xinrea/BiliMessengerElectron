@@ -145,16 +145,12 @@ void bm_page_summary(cui_ctx *ui, bm_app *app) {
                    .icon = CUI_ICON_SHIELD,
                    .delta = g_delta,
                    .delta_label = "近 60 天",
-                   .spark = app->guard_history.count >= 2 ? app->guard_history.values : NULL,
-                   .spark_count = app->guard_history.count,
                    .width = CUI_GROW(1));
 
         cui_metric(ui, "主播粉丝总数", kpi_fans_val,
                    .icon = CUI_ICON_HEART,
                    .delta = f_delta,
                    .delta_label = "近 60 天",
-                   .spark = app->follower_history.count >= 2 ? app->follower_history.values : NULL,
-                   .spark_count = app->follower_history.count,
                    .width = CUI_GROW(1));
 
         cui_metric(ui, "直播间人气值", kpi_online_val,

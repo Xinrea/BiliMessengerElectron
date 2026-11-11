@@ -334,6 +334,42 @@ static void delete_selected_guards(bm_app *app) {
     }
 }
 
+static void export_txt_action(bm_app *app) {
+    char def_name[128], path[1024] = { 0 };
+    snprintf(def_name, sizeof def_name, "%s-%04d-%02d-%02d.txt",
+             app->store.room_id, app->snapshot_date.year, app->snapshot_date.month, app->snapshot_date.day);
+    cui_file_dialog_opts fopts = {
+        .kind = CUI_FILE_SAVE,
+        .title = "导出为 TXT 文件",
+        .filter_name = "TXT 文件",
+        .filter = "txt",
+        .default_name = def_name
+    };
+    if (cui_app_file_dialog(NULL, &fopts, path, sizeof path)) {
+        if (bm_guard_export_txt(&app->store.guards, path)) {
+            bm_toast_push(app, "导出 TXT 成功", path, CUI_TONE_SUCCESS);
+        }
+    }
+}
+
+static void export_csv_action(bm_app *app) {
+    char def_name[128], path[1024] = { 0 };
+    snprintf(def_name, sizeof def_name, "%s-%04d-%02d-%02d.csv",
+             app->store.room_id, app->snapshot_date.year, app->snapshot_date.month, app->snapshot_date.day);
+    cui_file_dialog_opts fopts = {
+        .kind = CUI_FILE_SAVE,
+        .title = "导出为 CSV 文件",
+        .filter_name = "CSV 文件",
+        .filter = "csv",
+        .default_name = def_name
+    };
+    if (cui_app_file_dialog(NULL, &fopts, path, sizeof path)) {
+        if (bm_guard_export_csv(&app->store.guards, path)) {
+            bm_toast_push(app, "导出 CSV 成功", path, CUI_TONE_SUCCESS);
+        }
+    }
+}
+
 static void open_import_file_dialog(bm_app *app) {
     char path[1024] = { 0 };
     cui_file_dialog_opts fopts = {
@@ -366,7 +402,7 @@ void bm_page_guard_list(cui_ctx *ui, bm_app *app) {
         }
 
         char total_str[48], t1_str[48], t2_str[48], t3_str[48];
-        snprintf(total_str, sizeof total_str, "总计 %d", app->stats.total);
+        snprintf(total_str, sizeof total_str, "全部 %d", app->stats.total);
         snprintf(t1_str, sizeof t1_str, "总督 %d", app->stats.type1);
         snprintf(t2_str, sizeof t2_str, "提督 %d", app->stats.type2);
         snprintf(t3_str, sizeof t3_str, "舰长 %d", app->stats.type3);
@@ -383,328 +419,318 @@ void bm_page_guard_list(cui_ctx *ui, bm_app *app) {
         }
 
         cui_spacer(ui);
-        cui_search(ui, "guard_search_input", app->guard_search, sizeof app->guard_search,
-                   .placeholder = "搜索昵称 / UID / 头衔...", .width = CUI_PX(240), .size = CUI_SIZE_SM);
+
+        /* Quick actions right on top header */
+        if (cui_button(ui, "今日实时", .icon = CUI_ICON_ZAP, .size = CUI_SIZE_MD,
+                       .variant = CUI_BUTTON_SECONDARY,
+                       .tooltip = "快速拉取今日实时去重舰长快照", .loading = app->guard_loading)) {
+            int y, m, d;
+            bm_date_today(&y, &m, &d);
+            app->snapshot_date = (cui_date){ y, m, d };
+            char dstr[16];
+            snprintf(dstr, sizeof dstr, "%04d-%02d-%02d", y, m, d);
+            bm_guard_list_fetch_snapshot(app, dstr);
+        }
+        if (cui_button(ui, "获取 / 导入名单", .icon = CUI_ICON_DOWNLOAD, .size = CUI_SIZE_MD,
+                       .variant = CUI_BUTTON_PRIMARY, .tooltip = "打开导入弹窗（支持历史快照、礼物流水、TXT/CSV 文件与手动添加）")) {
+            app->import_guard_dialog = true;
+        }
     }
 
-    /* Main Two-Column Workbench */
-    cui_row(ui, .width = CUI_FILL, .height = CUI_FILL, .gap = 14, .align = CUI_ALIGN_STRETCH) {
-        /* Left Pane: Data Sources & Import/Export */
-        cui_scroll(ui, .id = "guard_sources_scroll", .width = CUI_PX(310), .height = CUI_FILL, .gap = 12) {
-            /* Source 1: Snapshot */
-            cui_card(ui, .width = CUI_FILL, .pad = 14, .gap = 10) {
-                cui_row(ui, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
-                    cui_icon(ui, CUI_ICON_CALENDAR, 16, CUI_COLOR_ACCENT_STRONG);
-                    cui_gap(ui, 6);
-                    cui_label(ui, "方式一：历史舰长快照");
-                    cui_spacer(ui);
-                    char sel_dstr[16];
-                    snprintf(sel_dstr, sizeof sel_dstr, "%04d-%02d-%02d",
-                             app->snapshot_date.year, app->snapshot_date.month, app->snapshot_date.day);
-                    bool date_ok = bm_date_list_contains(&app->valid_dates, sel_dstr);
-                    cui_badge(ui, date_ok ? "有快照" : "未知", .tone = date_ok ? CUI_TONE_SUCCESS : CUI_TONE_NEUTRAL);
-                }
-                cui_muted(ui, "从 guard.vjoi.cn 及直播间实时榜单生成指定日期的去重舰长快照");
-
-                if (cui_date_picker(ui, "snap_date_picker", &app->snapshot_date, .width = CUI_FILL)) {
-                    char dstr[16];
-                    snprintf(dstr, sizeof dstr, "%04d-%02d-%02d",
-                             app->snapshot_date.year, app->snapshot_date.month, app->snapshot_date.day);
-                    if (bm_date_list_contains(&app->valid_dates, dstr)) {
-                        bm_guard_list_fetch_snapshot(app, dstr);
-                    } else {
-                        bm_toast_push(app, "该日期暂无记录在册快照", "仍可点击下方按钮尝试拉取", CUI_TONE_WARNING);
-                    }
-                }
-
-                cui_row(ui, .gap = 6, .width = CUI_FILL) {
-                    if (cui_button(ui, "拉取所选日快照", .icon = CUI_ICON_DOWNLOAD, .size = CUI_SIZE_SM,
-                                   .variant = CUI_BUTTON_PRIMARY, .width = CUI_GROW(1), .loading = app->guard_loading)) {
-                        char dstr[16];
-                        snprintf(dstr, sizeof dstr, "%04d-%02d-%02d",
-                                 app->snapshot_date.year, app->snapshot_date.month, app->snapshot_date.day);
-                        bm_guard_list_fetch_snapshot(app, dstr);
-                    }
-                    if (cui_button(ui, "今日实时", .icon = CUI_ICON_ZAP, .size = CUI_SIZE_SM, .loading = app->guard_loading)) {
-                        int y, m, d;
-                        bm_date_today(&y, &m, &d);
-                        app->snapshot_date = (cui_date){ y, m, d };
-                        char dstr[16];
-                        snprintf(dstr, sizeof dstr, "%04d-%02d-%02d", y, m, d);
-                        bm_guard_list_fetch_snapshot(app, dstr);
-                    }
-                }
-            }
-
-            /* Source 2: Gift Stream Range */
-            cui_card(ui, .width = CUI_FILL, .pad = 14, .gap = 10) {
-                cui_row(ui, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
-                    cui_icon(ui, CUI_ICON_HISTORY, 16, CUI_COLOR_ACCENT_STRONG);
-                    cui_gap(ui, 6);
-                    cui_label(ui, "方式二：上舰礼物流水");
-                }
-                cui_muted(ui, "拉取当前登录主播在时间段内的全部上舰礼物记录（含重复续费，可配合去重使用）");
-
-                cui_date_range_picker(ui, "gift_range_picker", &app->gift_range,
-                                      .placeholder = "选择开始与结束日期", .width = CUI_FILL);
-
-                cui_row(ui, .gap = 6, .width = CUI_FILL) {
-                    if (cui_button(ui, "本月", .size = CUI_SIZE_SM, .variant = CUI_BUTTON_OUTLINE, .width = CUI_GROW(1))) {
-                        set_gift_range_preset(app, 0);
-                    }
-                    if (cui_button(ui, "上月", .size = CUI_SIZE_SM, .variant = CUI_BUTTON_OUTLINE, .width = CUI_GROW(1))) {
-                        set_gift_range_preset(app, 1);
-                    }
-                    if (cui_button(ui, "近 7 天", .size = CUI_SIZE_SM, .variant = CUI_BUTTON_OUTLINE, .width = CUI_GROW(1))) {
-                        set_gift_range_preset(app, 2);
-                    }
-                }
-
-                if (cui_button(ui, "拉取区间上舰记录", .icon = CUI_ICON_HISTORY, .size = CUI_SIZE_SM,
-                               .variant = CUI_BUTTON_SECONDARY, .full_width = true, .loading = app->guard_loading)) {
-                    start_fetch_gift_range(app);
-                }
-            }
-
-            /* Source 3: Manual Add & File Import/Export */
-            cui_card(ui, .width = CUI_FILL, .pad = 14, .gap = 10) {
-                cui_row(ui, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
-                    cui_icon(ui, CUI_ICON_FOLDER_OPEN, 16, CUI_COLOR_ACCENT_STRONG);
-                    cui_gap(ui, 6);
-                    cui_label(ui, "方式三：手动与文件管理");
-                }
-
-                if (cui_button(ui, "手动添加单个用户 (UID/昵称)", .icon = CUI_ICON_USER_PLUS, .size = CUI_SIZE_SM, .full_width = true)) {
-                    app->add_guard_dialog = true;
-                }
-
-                int dz = cui_dropzone(ui, "guard_file_dropzone",
-                                      .title = "拖拽 TXT / CSV 导入",
-                                      .description = "或点击浏览文件",
-                                      .accept = "txt;csv",
-                                      .compact = true,
-                                      .width = CUI_FILL);
-                if (dz == -1) {
-                    open_import_file_dialog(app);
-                } else if (dz > 0) {
-                    const char *dropped = cui_dropped_file(ui, 0);
-                    if (dropped && bm_guard_import_file(&app->store.original_guards, dropped)) {
-                        bm_refresh_guard_stats_and_filters(app, true);
-                        bm_toast_push(app, "拖拽导入成功", dropped, CUI_TONE_SUCCESS);
-                    } else {
-                        bm_toast_push(app, "导入失败", "请使用有效的 TXT 或 CSV 文件", CUI_TONE_DANGER);
-                    }
-                }
-
-                cui_row(ui, .gap = 6, .width = CUI_FILL) {
-                    if (cui_button(ui, "导出 TXT", .icon = CUI_ICON_FILE_TEXT, .size = CUI_SIZE_SM, .width = CUI_GROW(1))) {
-                        char def_name[128], path[1024] = { 0 };
-                        snprintf(def_name, sizeof def_name, "%s-%04d-%02d-%02d.txt",
-                                 app->store.room_id, app->snapshot_date.year, app->snapshot_date.month, app->snapshot_date.day);
-                        cui_file_dialog_opts fopts = {
-                            .kind = CUI_FILE_SAVE,
-                            .title = "导出为 TXT 文件",
-                            .filter_name = "TXT 文件",
-                            .filter = "txt",
-                            .default_name = def_name
-                        };
-                        if (cui_app_file_dialog(NULL, &fopts, path, sizeof path)) {
-                            if (bm_guard_export_txt(&app->store.guards, path)) {
-                                bm_toast_push(app, "导出 TXT 成功", path, CUI_TONE_SUCCESS);
-                            }
-                        }
-                    }
-                    if (cui_button(ui, "导出 CSV", .icon = CUI_ICON_FILE, .size = CUI_SIZE_SM, .width = CUI_GROW(1))) {
-                        char def_name[128], path[1024] = { 0 };
-                        snprintf(def_name, sizeof def_name, "%s-%04d-%02d-%02d.csv",
-                                 app->store.room_id, app->snapshot_date.year, app->snapshot_date.month, app->snapshot_date.day);
-                        cui_file_dialog_opts fopts = {
-                            .kind = CUI_FILE_SAVE,
-                            .title = "导出为 CSV 文件",
-                            .filter_name = "CSV 文件",
-                            .filter = "csv",
-                            .default_name = def_name
-                        };
-                        if (cui_app_file_dialog(NULL, &fopts, path, sizeof path)) {
-                            if (bm_guard_export_csv(&app->store.guards, path)) {
-                                bm_toast_push(app, "导出 CSV 成功", path, CUI_TONE_SUCCESS);
-                            }
-                        }
+    /* Main Full-Width Guard List Table Card */
+    cui_card(ui, .width = CUI_FILL, .height = CUI_FILL, .pad = 0, .gap = 0) {
+        /* Build filtered view index mapping */
+        int total_guards = app->store.guards.count;
+        int *vis_indices = NULL;
+        int vis_count = 0;
+        if (total_guards > 0) {
+            vis_indices = (int *)malloc((size_t)total_guards * sizeof(int));
+            if (vis_indices) {
+                for (int i = 0; i < total_guards; i++) {
+                    if (guard_matches_search(&app->store.guards.items[i], app->guard_search)) {
+                        vis_indices[vis_count++] = i;
                     }
                 }
             }
         }
 
-        /* Right Pane: Guard List Table & Batch Actions */
-        cui_card(ui, .width = CUI_FILL, .height = CUI_FILL, .pad = 0, .gap = 0) {
-            /* Build filtered view index mapping */
-            int total_guards = app->store.guards.count;
-            int *vis_indices = NULL;
-            int vis_count = 0;
-            if (total_guards > 0) {
-                vis_indices = (int *)malloc((size_t)total_guards * sizeof(int));
-                if (vis_indices) {
-                    for (int i = 0; i < total_guards; i++) {
-                        if (guard_matches_search(&app->store.guards.items[i], app->guard_search)) {
-                            vis_indices[vis_count++] = i;
-                        }
-                    }
+        int sel_count = count_selected_guards(&app->store.guards);
+
+        /* Batch Action & Search Toolbar inside Card */
+        cui_row(ui, .width = CUI_FILL, .pad_x = 16, .pad_y = 10, .gap = 8, .wrap = true,
+                .align = CUI_ALIGN_CENTER, .bg = CUI_COLOR_SURFACE_MUTED) {
+            if (cui_button(ui, sel_count > 0 && sel_count >= vis_count ? "取消全选" : "全选当前",
+                           .icon = CUI_ICON_SQUARE_CHECK, .size = CUI_SIZE_MD, .variant = CUI_BUTTON_SECONDARY,
+                           .disabled = vis_count == 0)) {
+                bool target_state = !(sel_count > 0 && sel_count >= vis_count);
+                for (int k = 0; k < vis_count; k++) {
+                    bm_guard *g = &app->store.guards.items[vis_indices[k]];
+                    g->selected = target_state;
+                    int oidx = bm_guard_list_find_uid(&app->store.original_guards, g->uid);
+                    if (oidx >= 0) app->store.original_guards.items[oidx].selected = target_state;
                 }
             }
 
-            int sel_count = count_selected_guards(&app->store.guards);
+            cui_spacer(ui);
 
-            /* Batch Action Header inside Card */
-            cui_row(ui, .width = CUI_FILL, .pad_x = 16, .pad_y = 10, .gap = 8, .align = CUI_ALIGN_CENTER, .bg = CUI_COLOR_SURFACE_MUTED) {
-                if (cui_button(ui, sel_count > 0 && sel_count >= vis_count ? "取消全选" : "全选当前",
-                               .icon = CUI_ICON_SQUARE_CHECK, .size = CUI_SIZE_SM, .variant = CUI_BUTTON_GHOST,
-                               .disabled = vis_count == 0)) {
-                    bool target_state = !(sel_count > 0 && sel_count >= vis_count);
-                    for (int k = 0; k < vis_count; k++) {
-                        bm_guard *g = &app->store.guards.items[vis_indices[k]];
-                        g->selected = target_state;
-                        int oidx = bm_guard_list_find_uid(&app->store.original_guards, g->uid);
-                        if (oidx >= 0) app->store.original_guards.items[oidx].selected = target_state;
-                    }
+            cui_search(ui, "guard_search_input", app->guard_search, sizeof app->guard_search,
+                       .placeholder = "搜索昵称 / UID / 头衔...", .width = CUI_PX(220), .size = CUI_SIZE_MD);
+
+            cui_gap(ui, 4);
+
+            if (cui_button(ui, "一键去重", .icon = CUI_ICON_FILTER, .size = CUI_SIZE_MD,
+                           .variant = CUI_BUTTON_SECONDARY,
+                           .tooltip = "按 UID 去重并保留最高大航海等级", .disabled = total_guards <= 1)) {
+                int removed = bm_guard_deduplicate(&app->store.original_guards);
+                bm_refresh_guard_stats_and_filters(app, true);
+                char msg[64];
+                snprintf(msg, sizeof msg, "去重完成，移除了 %d 条重复记录", removed);
+                bm_toast_push(app, msg, NULL, CUI_TONE_SUCCESS);
+            }
+
+            cui_menu(ui, "导出名单", .icon = CUI_ICON_SHARE_2, .variant = CUI_BUTTON_SECONDARY) {
+                if (cui_menu_item(ui, "导出为 TXT 文件", .icon = CUI_ICON_FILE_TEXT)) {
+                    export_txt_action(app);
                 }
-
-                char status_lbl[128];
-                if (app->guard_search[0]) {
-                    snprintf(status_lbl, sizeof status_lbl, "筛选出 %d / %d 人 · 已选 %d 人", vis_count, total_guards, sel_count);
-                } else {
-                    snprintf(status_lbl, sizeof status_lbl, "当前展示 %d 人 · 已选 %d 人", vis_count, sel_count);
+                if (cui_menu_item(ui, "导出为 CSV 表格", .icon = CUI_ICON_FILE)) {
+                    export_csv_action(app);
                 }
-                cui_muted(ui, status_lbl);
+            }
 
-                cui_spacer(ui);
+            char del_btn_lbl[64];
+            snprintf(del_btn_lbl, sizeof del_btn_lbl, "删除选中 (%d)###del_sel_guards", sel_count);
+            if (cui_button(ui, del_btn_lbl, .icon = CUI_ICON_TRASH_2, .size = CUI_SIZE_MD,
+                           .variant = CUI_BUTTON_SECONDARY, .disabled = sel_count == 0)) {
+                delete_selected_guards(app);
+            }
 
-                if (cui_button(ui, "一键去重", .icon = CUI_ICON_FILTER, .size = CUI_SIZE_SM,
-                               .tooltip = "按 UID 去重并保留最高大航海等级", .disabled = total_guards <= 1)) {
-                    int removed = bm_guard_deduplicate(&app->store.original_guards);
-                    bm_refresh_guard_stats_and_filters(app, true);
-                    char msg[64];
-                    snprintf(msg, sizeof msg, "去重完成，移除了 %d 条重复记录", removed);
-                    bm_toast_push(app, msg, NULL, CUI_TONE_SUCCESS);
-                }
-
-                char del_btn_lbl[64];
-                snprintf(del_btn_lbl, sizeof del_btn_lbl, "删除选中 (%d)###del_sel_guards", sel_count);
-                if (cui_button(ui, del_btn_lbl, .icon = CUI_ICON_TRASH_2, .size = CUI_SIZE_SM,
-                               .variant = CUI_BUTTON_DANGER, .disabled = sel_count == 0)) {
-                    delete_selected_guards(app);
-                }
-
+            if (total_guards > 0) {
                 if (cui_confirm_button(ui, "清空列表", .confirm_label = "再次点击确认清空",
-                                       .icon = CUI_ICON_CIRCLE_X, .size = CUI_SIZE_SM)) {
+                                       .icon = CUI_ICON_CIRCLE_X, .size = CUI_SIZE_MD,
+                                       .variant = CUI_BUTTON_SECONDARY)) {
                     bm_guard_list_clear(&app->store.original_guards);
                     bm_refresh_guard_stats_and_filters(app, true);
                     bm_toast_push(app, "已清空目标列表", NULL, CUI_TONE_INFO);
                 }
             }
-
-            cui_separator(ui);
-
-            /* Virtual List Body */
-            if (vis_count == 0) {
-                cui_box(ui, .width = CUI_FILL, .height = CUI_FILL, .align = CUI_ALIGN_CENTER, .justify = CUI_JUSTIFY_CENTER) {
-                    if (app->guard_search[0]) {
-                        if (cui_empty_state(ui, "未找到匹配的目标用户", .icon = CUI_ICON_SEARCH,
-                                            .description = "请尝试更换搜索关键词或清除搜索框", .action = "清除搜索")) {
-                            app->guard_search[0] = '\0';
-                        }
-                    } else {
-                        if (cui_empty_state(ui, "目标列表为空", .icon = CUI_ICON_USERS,
-                                            .description = "在左侧选择日期拉取舰长快照、上舰记录，或拖拽导入 TXT/CSV 文件",
-                                            .action = "拉取今日舰长快照")) {
-                            int y, m, d;
-                            bm_date_today(&y, &m, &d);
-                            char today[16];
-                            snprintf(today, sizeof today, "%04d-%02d-%02d", y, m, d);
-                            bm_guard_list_fetch_snapshot(app, today);
-                        }
-                    }
-                }
+        }
+        cui_row(ui, .width = CUI_FILL, .pad_x = 16, .pad_bottom = 10) {
+            char status_lbl[128];
+            if (app->guard_search[0]) {
+                snprintf(status_lbl, sizeof status_lbl, "筛选出 %d / %d 人 · 已选 %d 人", vis_count, total_guards, sel_count);
             } else {
-                int first = 0, last = 0;
-                uint64_t single_remove_uid = 0;
-                cui_virtual_list(ui, "guards_vlist", vis_count, 54.0f, CUI_FILL, &first, &last) {
-                    for (int vi = first; vi < last; vi++) {
-                        int real_idx = vis_indices[vi];
-                        bm_guard *g = &app->store.guards.items[real_idx];
-                        cui_push_id_int(ui, vi);
-                        cui_row(ui, .width = CUI_FILL, .height = CUI_PX(54.0f), .pad_x = 16, .gap = 10, .align = CUI_ALIGN_CENTER) {
-                            if (cui_checkbox(ui, "##sel", &g->selected)) {
-                                int oidx = bm_guard_list_find_uid(&app->store.original_guards, g->uid);
-                                if (oidx >= 0) {
-                                    app->store.original_guards.items[oidx].selected = g->selected;
-                                }
-                            }
+                snprintf(status_lbl, sizeof status_lbl, "展示 %d 人 · 已选 %d 人", vis_count, sel_count);
+            }
+            cui_muted(ui, status_lbl);
+        }
 
-                            cui_texture ftex = bm_image_get(ui, g->face, NULL, NULL);
-                            cui_avatar(ui, g->username[0] ? g->username : "U", .size = 36, .image = ftex);
+        cui_separator(ui);
 
-                            char uid_txt[48], uid_raw[32];
-                            snprintf(uid_raw, sizeof uid_raw, "%llu", (unsigned long long)g->uid);
-                            snprintf(uid_txt, sizeof uid_txt, "UID %s", uid_raw);
-
-                            cui_column(ui, .gap = 2, .width = CUI_FILL) {
-                                cui_row(ui, .gap = 6, .align = CUI_ALIGN_CENTER) {
-                                    bm_guard_badge(ui, g);
-                                    cui_text(ui, g->username, .font = CUI_FONT_MEDIUM, .size = 14, .nowrap = true);
-                                }
-                                cui_muted(ui, uid_txt);
-                            }
-
-                            cui_copy_button(ui, "copy_uid", uid_raw);
-
-                            if (cui_button(ui, "空间", .icon = CUI_ICON_EXTERNAL_LINK, .variant = CUI_BUTTON_GHOST, .size = CUI_SIZE_SM)) {
-                                char url[256];
-                                snprintf(url, sizeof url, "https://space.bilibili.com/%llu", (unsigned long long)g->uid);
-                                cui_app_open_url(url);
-                            }
-                            if (cui_button(ui, "私信", .icon = CUI_ICON_SEND, .variant = CUI_BUTTON_GHOST, .size = CUI_SIZE_SM)) {
-                                char url[256];
-                                snprintf(url, sizeof url, "https://message.bilibili.com/#/whisper/mid%llu", (unsigned long long)g->uid);
-                                cui_app_open_url(url);
-                            }
-                            if (cui_icon_button(ui, CUI_ICON_X, .tooltip = "从列表中移除")) {
-                                single_remove_uid = g->uid;
-                            }
-                        }
-                        cui_pop_id(ui);
+        /* Virtual List Body */
+        if (vis_count == 0) {
+            cui_box(ui, .width = CUI_FILL, .height = CUI_FILL, .align = CUI_ALIGN_CENTER, .justify = CUI_JUSTIFY_CENTER) {
+                if (app->guard_search[0]) {
+                    if (cui_empty_state(ui, "未找到匹配的目标用户", .icon = CUI_ICON_SEARCH,
+                                        .description = "请尝试更换搜索关键词或清除搜索框", .action = "清除搜索")) {
+                        app->guard_search[0] = '\0';
                     }
-                }
-                if (single_remove_uid != 0) {
-                    bm_guard_list_remove_uid(&app->store.original_guards, single_remove_uid);
-                    bm_refresh_guard_stats_and_filters(app, true);
+                } else {
+                    if (cui_empty_state(ui, "目标列表为空", .icon = CUI_ICON_USERS,
+                                        .description = "点击下方快速获取今日舰长，或打开导入弹窗获取历史快照、流水及文件",
+                                        .action = "获取与导入名单")) {
+                        app->import_guard_dialog = true;
+                    }
                 }
             }
+        } else {
+            int first = 0, last = 0;
+            uint64_t single_remove_uid = 0;
+            cui_virtual_list(ui, "guards_vlist", vis_count, 54.0f, CUI_FILL, &first, &last) {
+                for (int vi = first; vi < last; vi++) {
+                    int real_idx = vis_indices[vi];
+                    bm_guard *g = &app->store.guards.items[real_idx];
+                    cui_push_id_int(ui, vi);
+                    cui_row(ui, .width = CUI_FILL, .height = CUI_PX(54.0f), .pad_x = 16, .gap = 10, .align = CUI_ALIGN_CENTER) {
+                        if (cui_checkbox(ui, "##sel", &g->selected)) {
+                            int oidx = bm_guard_list_find_uid(&app->store.original_guards, g->uid);
+                            if (oidx >= 0) {
+                                app->store.original_guards.items[oidx].selected = g->selected;
+                            }
+                        }
 
-            free(vis_indices);
+                        cui_texture ftex = bm_image_get(ui, g->face, NULL, NULL);
+                        cui_avatar(ui, g->username[0] ? g->username : "U", .size = 36, .image = ftex);
+
+                        char uid_txt[48], uid_raw[32];
+                        snprintf(uid_raw, sizeof uid_raw, "%llu", (unsigned long long)g->uid);
+                        snprintf(uid_txt, sizeof uid_txt, "UID %s", uid_raw);
+
+                        cui_column(ui, .gap = 2, .width = CUI_FILL) {
+                            cui_row(ui, .gap = 6, .align = CUI_ALIGN_CENTER) {
+                                bm_guard_badge(ui, g);
+                                cui_text(ui, g->username, .font = CUI_FONT_MEDIUM, .size = 14, .nowrap = true);
+                                if (g->custom_title[0]) {
+                                    cui_badge(ui, g->custom_title, .tone = CUI_TONE_NEUTRAL);
+                                }
+                            }
+                            cui_muted(ui, uid_txt);
+                        }
+
+                        cui_copy_button(ui, "copy_uid", uid_raw);
+
+                        if (cui_button(ui, "空间", .icon = CUI_ICON_EXTERNAL_LINK, .variant = CUI_BUTTON_GHOST, .size = CUI_SIZE_SM)) {
+                            char url[256];
+                            snprintf(url, sizeof url, "https://space.bilibili.com/%llu", (unsigned long long)g->uid);
+                            cui_app_open_url(url);
+                        }
+                        if (cui_button(ui, "私信", .icon = CUI_ICON_SEND, .variant = CUI_BUTTON_GHOST, .size = CUI_SIZE_SM)) {
+                            char url[256];
+                            snprintf(url, sizeof url, "https://message.bilibili.com/#/whisper/mid%llu", (unsigned long long)g->uid);
+                            cui_app_open_url(url);
+                        }
+                        if (cui_icon_button(ui, CUI_ICON_X, .tooltip = "从列表中移除")) {
+                            single_remove_uid = g->uid;
+                        }
+                    }
+                    cui_pop_id(ui);
+                }
+            }
+            if (single_remove_uid != 0) {
+                bm_guard_list_remove_uid(&app->store.original_guards, single_remove_uid);
+                bm_refresh_guard_stats_and_filters(app, true);
+            }
         }
+
+        free(vis_indices);
     }
 
-    /* Add single guard dialog */
-    cui_dialog(ui, "手动添加目标用户", &app->add_guard_dialog, .description = "支持通过 Bilibili UID 或用户昵称检索并加入目标列表", .width = 440) {
-        cui_column(ui, .gap = 12, .width = CUI_FILL) {
-            static const char *search_modes[] = { "按 UID 精确查找", "按用户名搜索 (需已登录)" };
-            int mode_idx = app->add_guard_by_username ? 1 : 0;
-            if (cui_segmented(ui, "add_guard_mode", search_modes, 2, &mode_idx, .full_width = true)) {
-                app->add_guard_by_username = (mode_idx == 1);
+    /* Unified Import & Fetch Dialog */
+    cui_dialog(ui, "获取与导入目标名单", &app->import_guard_dialog,
+               .description = "选择数据来源以加载或合并目标舰长名单", .width = 540) {
+        cui_column(ui, .gap = 14, .width = CUI_FILL) {
+            static const char *tabs[] = { "历史快照", "上舰流水", "文件导入", "手动添加" };
+            static const char *tab_icons[] = { CUI_ICON_CALENDAR, CUI_ICON_HISTORY, CUI_ICON_FOLDER_OPEN, CUI_ICON_USER_PLUS };
+            cui_segmented(ui, "import_tabs_seg", tabs, 4, &app->import_guard_tab, .icons = tab_icons, .full_width = true);
+
+            if (app->import_guard_tab == 0) {
+                /* Source 1: Snapshot */
+                cui_column(ui, .gap = 12, .width = CUI_FILL) {
+                    cui_box(ui, .width = CUI_FILL, .pad = 12, .radius = 8, .bg = CUI_COLOR_SURFACE_MUTED, .gap = 6) {
+                        cui_row(ui, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
+                            cui_column(ui, .gap = 2, .width = CUI_FILL) {
+                                cui_text(ui, "今日实时快照（推荐）", .font = CUI_FONT_MEDIUM);
+                                cui_muted(ui, "直接拉取当前直播间最新去重舰长榜单数据");
+                            }
+                            if (cui_button(ui, "拉取今日快照", .icon = CUI_ICON_ZAP, .variant = CUI_BUTTON_PRIMARY,
+                                           .size = CUI_SIZE_SM, .loading = app->guard_loading)) {
+                                int y, m, d;
+                                bm_date_today(&y, &m, &d);
+                                app->snapshot_date = (cui_date){ y, m, d };
+                                char dstr[16];
+                                snprintf(dstr, sizeof dstr, "%04d-%02d-%02d", y, m, d);
+                                bm_guard_list_fetch_snapshot(app, dstr);
+                                app->import_guard_dialog = false;
+                            }
+                        }
+                    }
+
+                    cui_separator(ui);
+
+                    cui_label(ui, "或者选择历史日期拉取历史快照：");
+                    cui_row(ui, .gap = 8, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
+                        cui_date_picker(ui, "snap_date_picker", &app->snapshot_date, .width = CUI_FILL);
+                        char sel_dstr[16];
+                        snprintf(sel_dstr, sizeof sel_dstr, "%04d-%02d-%02d",
+                                 app->snapshot_date.year, app->snapshot_date.month, app->snapshot_date.day);
+                        bool date_ok = bm_date_list_contains(&app->valid_dates, sel_dstr);
+                        cui_badge(ui, date_ok ? "有快照" : "未检测到快照", .tone = date_ok ? CUI_TONE_SUCCESS : CUI_TONE_NEUTRAL);
+                    }
+                    cui_muted(ui, "支持从 guard.vjoi.cn 存档服务查询并拉取指定日期的去重历史大航海名单。");
+
+                    if (cui_button(ui, "拉取所选日期快照", .icon = CUI_ICON_DOWNLOAD, .variant = CUI_BUTTON_SECONDARY,
+                                   .full_width = true, .loading = app->guard_loading)) {
+                        char dstr[16];
+                        snprintf(dstr, sizeof dstr, "%04d-%02d-%02d",
+                                 app->snapshot_date.year, app->snapshot_date.month, app->snapshot_date.day);
+                        bm_guard_list_fetch_snapshot(app, dstr);
+                        app->import_guard_dialog = false;
+                    }
+                }
+            } else if (app->import_guard_tab == 1) {
+                /* Source 2: Gift Stream */
+                cui_column(ui, .gap = 12, .width = CUI_FILL) {
+                    cui_muted(ui, "拉取当前登录主播在时间段内的全部上舰礼物记录（含重复续费，拉取后可一键去重合并）：");
+
+                    cui_row(ui, .gap = 6, .width = CUI_FILL) {
+                        if (cui_button(ui, "本月流水", .size = CUI_SIZE_SM, .variant = CUI_BUTTON_OUTLINE, .width = CUI_GROW(1))) {
+                            set_gift_range_preset(app, 0);
+                        }
+                        if (cui_button(ui, "上月流水", .size = CUI_SIZE_SM, .variant = CUI_BUTTON_OUTLINE, .width = CUI_GROW(1))) {
+                            set_gift_range_preset(app, 1);
+                        }
+                        if (cui_button(ui, "近 7 天流水", .size = CUI_SIZE_SM, .variant = CUI_BUTTON_OUTLINE, .width = CUI_GROW(1))) {
+                            set_gift_range_preset(app, 2);
+                        }
+                    }
+
+                    cui_date_range_picker(ui, "gift_range_picker", &app->gift_range,
+                                          .placeholder = "选择开始与结束日期", .width = CUI_FILL);
+
+                    if (cui_button(ui, "开始拉取区间上舰流水", .icon = CUI_ICON_HISTORY,
+                                   .variant = CUI_BUTTON_PRIMARY, .full_width = true, .loading = app->guard_loading)) {
+                        start_fetch_gift_range(app);
+                        app->import_guard_dialog = false;
+                    }
+                }
+            } else if (app->import_guard_tab == 2) {
+                /* Source 3: File Import */
+                cui_column(ui, .gap = 12, .width = CUI_FILL) {
+                    cui_muted(ui, "支持 TXT（支持单行 UID、或逗号分隔 UID,昵称）及 CSV 文件导入：");
+
+                    int dz = cui_dropzone(ui, "guard_file_dropzone",
+                                          .title = "拖拽 TXT / CSV 导入",
+                                          .description = "或点击浏览文件",
+                                          .accept = "txt;csv",
+                                          .width = CUI_FILL);
+                    if (dz == -1) {
+                        open_import_file_dialog(app);
+                        app->import_guard_dialog = false;
+                    } else if (dz > 0) {
+                        const char *dropped = cui_dropped_file(ui, 0);
+                        if (dropped && bm_guard_import_file(&app->store.original_guards, dropped)) {
+                            bm_refresh_guard_stats_and_filters(app, true);
+                            bm_toast_push(app, "拖拽导入成功", dropped, CUI_TONE_SUCCESS);
+                            app->import_guard_dialog = false;
+                        } else {
+                            bm_toast_push(app, "导入失败", "请使用有效的 TXT 或 CSV 文件", CUI_TONE_DANGER);
+                        }
+                    }
+                }
+            } else if (app->import_guard_tab == 3) {
+                /* Source 4: Manual Add Single */
+                cui_column(ui, .gap = 12, .width = CUI_FILL) {
+                    static const char *search_modes[] = { "按 UID 精确查找", "按用户名搜索 (需已登录)" };
+                    int mode_idx = app->add_guard_by_username ? 1 : 0;
+                    if (cui_segmented(ui, "add_guard_mode", search_modes, 2, &mode_idx, .full_width = true)) {
+                        app->add_guard_by_username = (mode_idx == 1);
+                    }
+                    cui_input(ui, "add_guard_kw", app->add_guard_keyword, sizeof app->add_guard_keyword,
+                              .label = app->add_guard_by_username ? "Bilibili 用户名" : "Bilibili UID",
+                              .placeholder = app->add_guard_by_username ? "输入完整昵称搜索" : "例如：475210");
+                    cui_input(ui, "add_guard_title", app->add_guard_title, sizeof app->add_guard_title,
+                              .label = "自定义头衔（可选）",
+                              .placeholder = "留空则默认为「舰长」，填入可替换模板中的 {level}");
+
+                    if (cui_button(ui, "确认添加并加入列表", .variant = CUI_BUTTON_PRIMARY, .icon = CUI_ICON_PLUS, .full_width = true)) {
+                        submit_add_guard(app);
+                        app->import_guard_dialog = false;
+                    }
+                }
             }
-            cui_input(ui, "add_guard_kw", app->add_guard_keyword, sizeof app->add_guard_keyword,
-                      .label = app->add_guard_by_username ? "Bilibili 用户名" : "Bilibili UID",
-                      .placeholder = app->add_guard_by_username ? "输入完整昵称搜索" : "例如：475210");
-            cui_input(ui, "add_guard_title", app->add_guard_title, sizeof app->add_guard_title,
-                      .label = "自定义头衔（可选）",
-                      .placeholder = "留空则默认为「舰长」，填入可替换模板中的 {level}");
         }
         cui_dialog_footer(ui) {
-            if (cui_button(ui, "取消")) {
-                app->add_guard_dialog = false;
-            }
-            if (cui_button(ui, "确认添加", .variant = CUI_BUTTON_PRIMARY, .icon = CUI_ICON_PLUS)) {
-                submit_add_guard(app);
+            if (cui_button(ui, "关闭")) {
+                app->import_guard_dialog = false;
             }
         }
     }

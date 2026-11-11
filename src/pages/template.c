@@ -441,15 +441,29 @@ void bm_page_template(cui_ctx *ui, bm_app *app) {
             }
 
             /* Compact Variable Mapping Reference */
-            cui_box(ui, .width = CUI_FILL, .pad = 10, .radius = 8, .bg = CUI_COLOR_SURFACE_MUTED, .gap = 4) {
-                cui_muted(ui, "当前预览变量取值映射：");
-                char map_line1[256], map_line2[256];
-                snprintf(map_line1, sizeof map_line1, "{name}=%s  ·  {level}=%s  ·  {code}=%s",
-                         sample_g.username, bm_guard_level_str(&sample_g), sample_code);
-                snprintf(map_line2, sizeof map_line2, "{date}=%s  ·  {month}=%d  ·  {lastMonth}=%d  ·  {day}=%d",
-                         date_str, m, last_m, d);
-                cui_secondary(ui, map_line1);
-                cui_secondary(ui, map_line2);
+            cui_box(ui, .width = CUI_FILL, .pad = 10, .radius = 8, .bg = CUI_COLOR_SURFACE_MUTED, .gap = 6) {
+                cui_muted(ui, "当前预览变量取值");
+                for (int i = 0; i < 7; i++) {
+                    const bm_tpl_tag_def *tag = &k_tpl_tags[i];
+                    char value[4096];
+                    bm_template_process(tag->tag, &sample_g, sample_code, date_str, m, last_m, d,
+                                        value, sizeof value);
+                    cui_color bg, border, fg;
+                    bm_tpl_tag_colors(ui, tag->category, &bg, &border, &fg);
+
+                    cui_row(ui, .width = CUI_FILL, .gap = 10, .align = CUI_ALIGN_START) {
+                        cui_column(ui, .width = CUI_PX(96)) {
+                            cui_row(ui, .pad_x = 6, .pad_y = 2, .radius = 4,
+                                    .bg = bg, .border = 1, .border_color = border) {
+                                cui_text(ui, tag->tag, .font = CUI_FONT_MEDIUM, .size = 12,
+                                         .color = fg, .nowrap = true);
+                            }
+                        }
+                        cui_column(ui, .width = CUI_FILL, .pad_y = 2) {
+                            cui_text(ui, value[0] ? value : "（空）", .size = 12, .width = CUI_FILL);
+                        }
+                    }
+                }
             }
         }
     }

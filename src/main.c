@@ -39,8 +39,10 @@ static void render_title_bar(cui_ctx *ui, bm_app *app) {
         cui_id drag_id = cui_make_id(ui, "bm_titlebar_drag");
         cui_rect dr = cui_get_rect(ui, drag_id);
         cui_vec2 mp = cui_mouse_pos(ui);
+        bm_window_set_drag_rect(app->native_window, dr.x, dr.y, dr.w, dr.h);
+        /* Only on the press frame (Windows); macOS drags from its own mouse-down monitor */
         if (dr.w > 0 && mp.x >= dr.x && mp.x < dr.x + dr.w && mp.y >= dr.y && mp.y < dr.y + dr.h) {
-            if (cui_mouse_down(ui, CUI_MOUSE_LEFT)) {
+            if (cui_mouse_clicked(ui, CUI_MOUSE_LEFT)) {
                 bm_window_drag(app->native_window);
             }
         }
@@ -184,19 +186,7 @@ static void render_sidebar(cui_ctx *ui, bm_app *app) {
                 app->page = BM_PAGE_ABOUT;
             }
 
-            cui_spacer(ui);
-            cui_separator(ui);
-
-            cui_row(ui, .gap = 6, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
-                if (cui_button(ui, "快捷命令", .icon = CUI_ICON_SEARCH, .variant = CUI_BUTTON_GHOST, .size = CUI_SIZE_SM,
-                               .shortcut = "Cmd K", .width = CUI_FILL)) {
-                    app->cmd_palette_open = true;
-                }
-                if (cui_theme_toggle(ui)) {
-                    app->store.dark_mode = (cui_get_theme_mode(ui) == CUI_THEME_DARK);
-                    bm_store_save(&app->store);
-                }
-            }
+            /* Theme switch and command palette live in the title bar */
         } else {
             cui_row(ui, .pad_y = 6, .justify = CUI_JUSTIFY_CENTER, .width = CUI_FILL) {
                 if (cui_icon_button(ui, CUI_ICON_PANEL_LEFT, .tooltip = "展开侧边栏")) {
@@ -219,13 +209,6 @@ static void render_sidebar(cui_ctx *ui, bm_app *app) {
                     }
                 }
                 cui_pop_id(ui);
-            }
-            cui_spacer(ui);
-            cui_row(ui, .justify = CUI_JUSTIFY_CENTER, .width = CUI_FILL) {
-                if (cui_theme_toggle(ui)) {
-                    app->store.dark_mode = (cui_get_theme_mode(ui) == CUI_THEME_DARK);
-                    bm_store_save(&app->store);
-                }
             }
         }
     }
@@ -461,6 +444,9 @@ int main(void) {
     const char *env_accent = getenv("BM_ACCENT");
     if (env_accent && *env_accent) {
         app.accent_idx = atoi(env_accent);
+    }
+    if (getenv("BM_IMPORT_DIALOG")) {
+        app.import_guard_dialog = true;
     }
     bm_setting_startup_checks(&app);
 

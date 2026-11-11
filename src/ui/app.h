@@ -67,6 +67,8 @@ typedef struct bm_app {
     cui_date_range gift_range;
     bm_date_list valid_dates;
     bool guard_loading;
+    bool import_guard_dialog;
+    int import_guard_tab;
     bool add_guard_dialog;
     bool add_guard_by_username;
     char add_guard_keyword[128];
