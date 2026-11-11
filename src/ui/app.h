@@ -41,6 +41,8 @@ typedef struct bm_app {
     bool sidebar_mini;
     bool fonts_loaded;
     bool theme_applied;
+    bool cmd_palette_open;
+    int accent_idx;
 
     /* Pending toasts from callbacks */
     bm_pending_toast toasts[8];
@@ -52,10 +54,12 @@ typedef struct bm_app {
     bm_chart_history follower_history;
     bool summary_loading;
     bool summary_loaded;
+    int summary_chart_tab;
 
     /* Guard list page */
     bm_guard_stats stats;
     bm_guard_filters filters;
+    char guard_search[128];
     cui_date snapshot_date;
     cui_date_range gift_range;
     bm_date_list valid_dates;
@@ -70,15 +74,18 @@ typedef struct bm_app {
     char template_name_buf[128];
     char template_value_buf[4096];
     bool template_changed;
+    int tpl_preview_mode;
 
     /* Code manage page */
     bool add_code_dialog;
     char code_import_buf[16384];
+    char code_search[128];
 
     /* Message page */
     int msg_template_idx;
     char msg_template_name[128];
     bool msg_in_progress;
+    bool msg_is_recalling;
     int msg_progress_index;
     int msg_total_count;
     bm_guard_list msg_remain_list;
@@ -92,6 +99,7 @@ typedef struct bm_app {
     bool room_edited;
     bool room_saving;
     char interval_input[32];
+    int login_tab;
     bool login_dialog;
     bool login_step_scan;
     bool manual_login_enabled;
@@ -120,6 +128,7 @@ void bm_toast_push(bm_app *app, const char *title, const char *desc, cui_tone to
 void bm_toast_flush(bm_app *app, cui_ctx *ui);
 
 void bm_render_setting_alert(cui_ctx *ui, bm_app *app);
+void bm_sync_theme_tokens(cui_ctx *ui, bm_app *app);
 void bm_refresh_guard_stats_and_filters(bm_app *app, bool save_to_disk);
 
 /* Page renderers & actions */

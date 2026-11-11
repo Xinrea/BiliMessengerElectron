@@ -86,16 +86,85 @@ void bm_refresh_guard_stats_and_filters(bm_app *app, bool save_to_disk) {
     }
 }
 
+void bm_sync_theme_tokens(cui_ctx *ui, bm_app *app) {
+    static const cui_accent accents[4] = {
+        CUI_ACCENT_BLUE, CUI_ACCENT_AMBER, CUI_ACCENT_ROSE, CUI_ACCENT_VIOLET
+    };
+    int idx = (app && app->accent_idx >= 0 && app->accent_idx < 4) ? app->accent_idx : 0;
+    cui_set_accent(ui, accents[idx]);
+
+    cui_theme *th = cui_theme_get(ui);
+    if (!th) return;
+    bool dark = (cui_get_theme_mode(ui) == CUI_THEME_DARK);
+
+    /* Ensure all Primary buttons use high-contrast deep fill + pure white text
+     * (WCAG 2.1 >= 4.6:1 ~ 7.1:1, APCA |Lc| >= 76 ~ 88 in both Light and Dark mode),
+     * and ACCENT_STRONG has >= 6.1:1 ~ 9.9:1 contrast against card surfaces. */
+    switch (idx) {
+        case 1: /* Amber */
+            th->colors[CUI_TOKEN_ACCENT]            = CUI_RGB(dark ? 0xC25300 : 0xB45309);
+            th->colors[CUI_TOKEN_ACCENT_FOREGROUND] = CUI_RGB(0xFFFFFF);
+            th->colors[CUI_TOKEN_ACCENT_STRONG]     = CUI_RGB(dark ? 0xFBBF24 : 0x9A3412);
+            th->colors[CUI_TOKEN_CONTROL_ON]        = CUI_RGB(dark ? 0xC25300 : 0xB45309);
+            th->colors[CUI_TOKEN_CONTROL_GLYPH]     = CUI_RGB(0xFFFFFF);
+            break;
+        case 2: /* Rose */
+            th->colors[CUI_TOKEN_ACCENT]            = CUI_RGB(dark ? 0xDB2777 : 0xD23286);
+            th->colors[CUI_TOKEN_ACCENT_FOREGROUND] = CUI_RGB(0xFFFFFF);
+            th->colors[CUI_TOKEN_ACCENT_STRONG]     = CUI_RGB(dark ? 0xF472B6 : 0xB2186E);
+            th->colors[CUI_TOKEN_CONTROL_ON]        = CUI_RGB(dark ? 0xDB2777 : 0xD23286);
+            th->colors[CUI_TOKEN_CONTROL_GLYPH]     = CUI_RGB(0xFFFFFF);
+            break;
+        case 3: /* Violet */
+            th->colors[CUI_TOKEN_ACCENT]            = CUI_RGB(dark ? 0x7C3AED : 0x6D28D9);
+            th->colors[CUI_TOKEN_ACCENT_FOREGROUND] = CUI_RGB(0xFFFFFF);
+            th->colors[CUI_TOKEN_ACCENT_STRONG]     = CUI_RGB(dark ? 0xA78BFA : 0x5B21B6);
+            th->colors[CUI_TOKEN_CONTROL_ON]        = CUI_RGB(dark ? 0x7C3AED : 0x6D28D9);
+            th->colors[CUI_TOKEN_CONTROL_GLYPH]     = CUI_RGB(0xFFFFFF);
+            break;
+        default: /* Blue (Default) */
+            th->colors[CUI_TOKEN_ACCENT]            = CUI_RGB(dark ? 0x2563EB : 0x0562EF);
+            th->colors[CUI_TOKEN_ACCENT_FOREGROUND] = CUI_RGB(0xFFFFFF);
+            th->colors[CUI_TOKEN_ACCENT_STRONG]     = CUI_RGB(dark ? 0x60A5FA : 0x074DB7);
+            th->colors[CUI_TOKEN_CONTROL_ON]        = CUI_RGB(dark ? 0x2563EB : 0x0562EF);
+            th->colors[CUI_TOKEN_CONTROL_GLYPH]     = CUI_RGB(0xFFFFFF);
+            break;
+    }
+}
+
 void bm_render_setting_alert(cui_ctx *ui, bm_app *app) {
-    cui_card(ui, .gap = 12, .pad = 24, .width = CUI_FILL) {
-        cui_row(ui, .gap = 10, .align = CUI_ALIGN_CENTER) {
-            cui_icon(ui, CUI_ICON_CIRCLE_ALERT, 20, CUI_COLOR_WARNING);
-            cui_heading(ui, "未找到有效的设置", 4);
-        }
-        cui_secondary(ui, "请前往设置页面，设置私信所用的账号以及需要管理的直播间号");
-        cui_row(ui, .gap = 8) {
-            if (cui_button(ui, "前往设置", .icon = CUI_ICON_SETTINGS, .variant = CUI_BUTTON_PRIMARY)) {
+    cui_column(ui, .width = CUI_FILL, .height = CUI_FILL, .align = CUI_ALIGN_CENTER, .justify = CUI_JUSTIFY_CENTER, .pad = 24) {
+        cui_card(ui, .width = CUI_PX(540), .gap = 16, .pad = 28) {
+            cui_row(ui, .gap = 12, .align = CUI_ALIGN_CENTER) {
+                cui_icon(ui, CUI_ICON_SPARKLES, 24, CUI_COLOR_ACCENT_STRONG);
+                cui_column(ui, .gap = 2) {
+                    cui_heading(ui, "欢迎使用 BiliMessenger", 3);
+                    cui_secondary(ui, "开始之前，请先完成以下基础配置");
+                }
+            }
+
+            cui_check_step steps[2] = {
+                {
+                    .title = "1. 登录 Bilibili 账号",
+                    .description = "用于拉取直播间上舰流水以及向目标舰长发送私信（支持客户端扫码或 Cookie 登录）",
+                    .action = "去登录",
+                    .done = app->store.login.has_login
+                },
+                {
+                    .title = "2. 绑定目标直播间房间号",
+                    .description = "输入需要管理的 B 站直播间号，用于拉取房间实况、60 天趋势图与舰长快照",
+                    .action = "去设置房间号",
+                    .done = app->store.room_id[0] != '\0'
+                }
+            };
+            if (cui_checklist(ui, "onboarding_steps", steps, 2, .title = "初始化配置清单") >= 0) {
                 app->page = BM_PAGE_SETTING;
+            }
+
+            cui_row(ui, .justify = CUI_JUSTIFY_END, .width = CUI_FILL) {
+                if (cui_button(ui, "前往设置中心", .icon = CUI_ICON_SETTINGS, .variant = CUI_BUTTON_PRIMARY)) {
+                    app->page = BM_PAGE_SETTING;
+                }
             }
         }
     }
