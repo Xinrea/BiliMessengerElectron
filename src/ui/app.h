@@ -8,6 +8,7 @@
 #include "core/util.h"
 #include "ui/fonts.h"
 #include "ui/images.h"
+#include "ui/window.h"
 #include <cui/cui.h>
 #include <cui/cui_app.h>
 
@@ -43,6 +44,8 @@ typedef struct bm_app {
     bool theme_applied;
     bool cmd_palette_open;
     int accent_idx;
+    void *native_window;
+    bool window_initialized;
 
     /* Pending toasts from callbacks */
     bm_pending_toast toasts[8];

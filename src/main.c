@@ -5,6 +5,84 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void render_title_bar(cui_ctx *ui, bm_app *app) {
+    bool has_traffic_lights = bm_window_has_native_traffic_lights();
+    float left_pad = has_traffic_lights ? 76.0f : 12.0f;
+
+    cui_row(ui, .id = "bm_titlebar_row", .width = CUI_FILL, .height = CUI_PX(38),
+            .align = CUI_ALIGN_CENTER, .bg = CUI_COLOR_SURFACE_MUTED, .pad_y = 3) {
+
+        /* Left: Native traffic lights spacing + App brand */
+        cui_row(ui, .align = CUI_ALIGN_CENTER, .gap = 7, .pad_left = left_pad, .pad_right = 12) {
+            cui_icon(ui, CUI_ICON_SEND, 15, CUI_COLOR_ACCENT_STRONG);
+            cui_text(ui, "BiliMessenger", .font = CUI_FONT_MEDIUM, .size = 13.5f, .nowrap = true);
+            cui_badge(ui, "v2.0.0", .tone = CUI_TONE_NEUTRAL);
+        }
+
+        /* Center: Dedicated Draggable Region with current section indicator */
+        cui_row(ui, .id = "bm_titlebar_drag", .width = CUI_FILL, .height = CUI_FILL,
+                .align = CUI_ALIGN_CENTER, .justify = CUI_JUSTIFY_CENTER, .gap = 6) {
+            static const char *page_titles[BM_PAGE_COUNT] = {
+                "数据总览", "目标列表工作台", "私信模板工作坊",
+                "兑换码物料库", "私信群发任务", "系统与账号设置", "关于 BiliMessenger"
+            };
+            static const char *page_icons[BM_PAGE_COUNT] = {
+                CUI_ICON_LAYOUT_DASHBOARD, CUI_ICON_USERS, CUI_ICON_FILE_TEXT,
+                CUI_ICON_GIFT, CUI_ICON_SEND, CUI_ICON_SETTINGS, CUI_ICON_INFO
+            };
+            int p = (app->page >= 0 && app->page < BM_PAGE_COUNT) ? (int)app->page : 0;
+            cui_icon(ui, page_icons[p], 13, CUI_COLOR_TEXT_MUTED);
+            cui_text(ui, page_titles[p], .font = CUI_FONT_BODY, .size = 12.0f, .color = CUI_COLOR_TEXT_MUTED, .nowrap = true);
+        }
+
+        /* Title bar drag interaction */
+        cui_id drag_id = cui_make_id(ui, "bm_titlebar_drag");
+        cui_rect dr = cui_get_rect(ui, drag_id);
+        cui_vec2 mp = cui_mouse_pos(ui);
+        if (dr.w > 0 && mp.x >= dr.x && mp.x < dr.x + dr.w && mp.y >= dr.y && mp.y < dr.y + dr.h) {
+            if (cui_mouse_down(ui, CUI_MOUSE_LEFT)) {
+                bm_window_drag(app->native_window);
+            }
+        }
+
+        /* Right: Global Actions & Window Controls */
+        cui_row(ui, .align = CUI_ALIGN_CENTER, .gap = 6, .pad_right = 10) {
+            if (app->store.room_id[0]) {
+                char room_badge[64];
+                snprintf(room_badge, sizeof room_badge, "房间 %s", app->store.room_id);
+                if (cui_button(ui, room_badge, .icon = CUI_ICON_RADIO, .variant = CUI_BUTTON_GHOST,
+                               .size = CUI_SIZE_SM, .tooltip = "当前绑定直播间（点击前往数据总览）")) {
+                    app->page = BM_PAGE_SUMMARY;
+                }
+            }
+
+            if (cui_button(ui, "命令", .icon = CUI_ICON_SEARCH, .variant = CUI_BUTTON_GHOST,
+                           .size = CUI_SIZE_SM, .shortcut = "Cmd K", .tooltip = "打开全局快捷命令菜单 (Cmd+K)")) {
+                app->cmd_palette_open = true;
+            }
+
+            if (cui_theme_toggle(ui)) {
+                app->store.dark_mode = (cui_get_theme_mode(ui) == CUI_THEME_DARK);
+                bm_store_save(&app->store);
+            }
+
+            if (!has_traffic_lights) {
+                cui_separator(ui);
+                if (cui_icon_button(ui, CUI_ICON_MINUS, .tooltip = "最小化")) {
+                    bm_window_minimize(app->native_window);
+                }
+                bool maxed = bm_window_is_maximized(app->native_window);
+                if (cui_icon_button(ui, maxed ? CUI_ICON_MINIMIZE_2 : CUI_ICON_MAXIMIZE_2, .tooltip = maxed ? "还原" : "最大化")) {
+                    bm_window_maximize_toggle(app->native_window);
+                }
+                if (cui_icon_button(ui, CUI_ICON_X, .tooltip = "关闭")) {
+                    bm_window_close(app->native_window);
+                }
+            }
+        }
+    }
+}
+
 static void render_sidebar(cui_ctx *ui, bm_app *app) {
     char guard_badge[32] = { 0 };
     char tpl_badge[32] = { 0 };
@@ -29,14 +107,12 @@ static void render_sidebar(cui_ctx *ui, bm_app *app) {
     float width = app->sidebar_mini ? 68.0f : 236.0f;
     cui_column(ui, .width = CUI_PX(width), .height = CUI_FILL, .bg = CUI_COLOR_SURFACE_MUTED, .pad = 10, .gap = 6) {
         if (!app->sidebar_mini) {
-            /* Brand header */
+            /* Sidebar header: Section label + collapse button */
             cui_row(ui, .pad_x = 8, .pad_y = 4, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
-                cui_icon(ui, CUI_ICON_SEND, 18, CUI_COLOR_ACCENT_STRONG);
+                cui_icon(ui, CUI_ICON_MENU, 15, CUI_COLOR_TEXT_MUTED);
                 cui_gap(ui, 6);
-                cui_column(ui, .width = CUI_FILL, .gap = 1) {
-                    cui_text(ui, "BiliMessenger", .font = CUI_FONT_MEDIUM, .size = 15, .nowrap = true);
-                    cui_muted(ui, "舰长私信群发工作台");
-                }
+                cui_text(ui, "工作台导航", .font = CUI_FONT_MEDIUM, .size = 13, .nowrap = true);
+                cui_spacer(ui);
                 if (cui_icon_button(ui, CUI_ICON_PANEL_LEFT, .tooltip = "收起侧边栏")) {
                     app->sidebar_mini = true;
                 }
@@ -311,6 +387,9 @@ static void app_frame(cui_ctx *ui, void *user) {
     }
 
     cui_column(ui, .width = CUI_FILL, .height = CUI_FILL, .bg = CUI_COLOR_BACKGROUND) {
+        render_title_bar(ui, app);
+        cui_separator(ui);
+
         cui_row(ui, .width = CUI_FILL, .height = CUI_FILL, .align = CUI_ALIGN_STRETCH) {
             render_sidebar(ui, app);
             cui_separator(ui);
@@ -395,10 +474,19 @@ int main(void) {
         .accent = CUI_ACCENT_BLUE
     };
 
-    int rc = cui_app_run(&desc, app_frame, &app);
+    cui_app *capp = cui_app_create(&desc);
+    if (!capp) return 1;
+    app.native_window = cui_app_native_window(capp);
+    bm_window_setup(app.native_window);
+    app.window_initialized = true;
+
+    while (cui_app_frame(capp)) {
+        app_frame(cui_app_ui(capp), &app);
+    }
+    cui_app_destroy(capp);
 
     bm_app_shutdown(&app, NULL);
     bm_jobs_shutdown();
     bm_http_cleanup();
-    return rc;
+    return 0;
 }

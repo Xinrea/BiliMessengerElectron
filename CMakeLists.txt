@@ -61,6 +61,9 @@ set(BM_APP_SOURCES
 )
 
 if(APPLE)
+    enable_language(OBJC)
+    list(APPEND BM_APP_SOURCES src/ui/window_mac.m)
+    set_source_files_properties(src/ui/window_mac.m PROPERTIES COMPILE_FLAGS "-fobjc-arc")
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
     set(BM_ICON ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/icon.icns)
     set_source_files_properties(${BM_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
@@ -73,8 +76,10 @@ if(APPLE)
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/assets/Info.plist.in
     )
 elseif(WIN32)
+    list(APPEND BM_APP_SOURCES src/ui/window_win.c)
     add_executable(BiliMessenger ${BM_APP_SOURCES} assets/app.rc)
 else()
+    list(APPEND BM_APP_SOURCES src/ui/window_stub.c)
     add_executable(BiliMessenger ${BM_APP_SOURCES})
 endif()
 
