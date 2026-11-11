@@ -3,20 +3,53 @@ name: Release
 on:
   push:
     tags: '*'
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
         with:
-          node-version: 16.13.0
-          cache: 'npm'
-      - run: npm install --global yarn
-      - run: yarn install
-      - run: yarn build
+          submodules: recursive
+      - name: Configure and Build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -j4
+      - name: Run Unit Tests
+        run: ctest --test-dir build --output-on-failure -V
+      - name: Package macOS App
+        run: |
+          cd build
+          zip -r BiliMessenger-macOS.zip BiliMessenger.app
       - uses: ncipollo/release-action@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          artifacts: "build/*.dmg,build/*.exe,build/*.blockmap"
+          artifacts: "build/BiliMessenger-macOS.zip"
+          allowUpdates: true
+          token: ${{ github.token }}
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install libcurl via vcpkg
+        run: |
+          vcpkg install curl:x64-windows
+      - name: Configure and Build
+        run: |
+          cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -j4
+      - name: Run Unit Tests
+        run: ctest --test-dir build -C Release --output-on-failure -V
+      - name: Package Windows Executable
+        run: |
+          Compress-Archive -Path build/Release/* -DestinationPath build/BiliMessenger-Windows-x64.zip
+      - uses: ncipollo/release-action@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          artifacts: "build/BiliMessenger-Windows-x64.zip"
+          allowUpdates: true
           token: ${{ github.token }}
