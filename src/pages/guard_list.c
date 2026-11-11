@@ -146,24 +146,51 @@ static void gift_worker(void *raw) {
     bm_job_post_main(on_gift_loaded, d);
 }
 
-static void start_fetch_gift_range(bm_app *app) {
-    if (app->guard_loading) return;
+static bool start_fetch_gift_range(bm_app *app) {
+    if (app->guard_loading) return false;
     if (!app->store.login.has_login) {
         bm_toast_push(app, "请先前往设置页登录", NULL, CUI_TONE_WARNING);
-        return;
+        return false;
+    }
+    if (!app->store.room_id[0] || app->room_info.uid == 0) {
+        bm_toast_push(app, "暂时无法确认直播间归属", "请先在概览页刷新直播间信息后重试", CUI_TONE_WARNING);
+        return false;
+    }
+    if (!app->store.login.DedeUserID[0]) {
+        bm_toast_push(app, "登录账号信息不完整", "请前往设置页重新登录后重试", CUI_TONE_WARNING);
+        return false;
+    }
+    /* Compare the owner UID, not the room number (which may be a short ID). */
+    char owner_uid[32];
+    snprintf(owner_uid, sizeof owner_uid, "%llu", (unsigned long long)app->room_info.uid);
+    if (strcmp(owner_uid, app->store.login.DedeUserID) != 0) {
+        bm_toast_push(app, "设置的直播间不属于当前登录账号",
+                      "请切换为主播账号或使用别的方法获取", CUI_TONE_WARNING);
+        return false;
     }
     if (app->gift_range.start.year == 0 || app->gift_range.end.year == 0) {
         bm_toast_push(app, "请先选择有效的起止日期范围", NULL, CUI_TONE_WARNING);
-        return;
+        return false;
     }
     char bstr[16], estr[16];
     snprintf(bstr, sizeof bstr, "%04d-%02d-%02d",
              app->gift_range.start.year, app->gift_range.start.month, app->gift_range.start.day);
     snprintf(estr, sizeof estr, "%04d-%02d-%02d",
              app->gift_range.end.year, app->gift_range.end.month, app->gift_range.end.day);
+    int y, m, day;
+    if (!bm_parse_ymd(bstr, &y, &m, &day) || !bm_parse_ymd(estr, &y, &m, &day)
+        || strcmp(bstr, estr) > 0) {
+        bm_toast_push(app, "请先选择有效的起止日期范围", NULL, CUI_TONE_WARNING);
+        return false;
+    }
+    bm_date_today(&y, &m, &day);
+    if (cui_date_to_days(app->gift_range.end) >= cui_date_to_days((cui_date){ y, m, day })) {
+        bm_toast_push(app, "上舰流水仅支持查询昨天及以前的数据", "请选择早于今天的结束日期", CUI_TONE_WARNING);
+        return false;
+    }
 
     gift_job_data *d = (gift_job_data *)calloc(1, sizeof *d);
-    if (!d) return;
+    if (!d) return false;
     d->login = app->store.login;
     bm_strlcpy(d->begin_date, bstr, sizeof d->begin_date);
     bm_strlcpy(d->end_date, estr, sizeof d->end_date);
@@ -171,16 +198,20 @@ static void start_fetch_gift_range(bm_app *app) {
     if (!bm_job_spawn(gift_worker, d)) {
         app->guard_loading = false;
         free(d);
+        return false;
     }
+    return true;
 }
 
 static void set_gift_range_preset(bm_app *app, int mode) {
     int y, m, d;
     bm_date_today(&y, &m, &d);
+    cui_date yesterday = cui_date_from_days(cui_date_to_days((cui_date){ y, m, d }) - 1);
     if (mode == 0) {
-        /* This month */
+        /* This month through yesterday; no available dates on the first. */
+        if (d == 1) return;
         app->gift_range.start = (cui_date){ y, m, 1 };
-        app->gift_range.end = (cui_date){ y, m, d };
+        app->gift_range.end = yesterday;
     } else if (mode == 1) {
         /* Last month */
         int ly = (m == 1) ? (y - 1) : y;
@@ -188,11 +219,9 @@ static void set_gift_range_preset(bm_app *app, int mode) {
         app->gift_range.start = (cui_date){ ly, lm, 1 };
         app->gift_range.end = (cui_date){ ly, lm, bm_days_in_month(ly, lm) };
     } else if (mode == 2) {
-        /* Last 7 days */
-        cui_date end_d = { y, m, d };
-        int days = cui_date_to_days(end_d);
-        app->gift_range.start = cui_date_from_days(days - 6);
-        app->gift_range.end = end_d;
+        /* Last 7 complete days, excluding today. */
+        app->gift_range.start = cui_date_from_days(cui_date_to_days(yesterday) - 6);
+        app->gift_range.end = yesterday;
     }
 }
 
@@ -434,7 +463,7 @@ void bm_page_guard_list(cui_ctx *ui, bm_app *app) {
             bm_guard_list_fetch_snapshot(app, dstr);
         }
         if (cui_button(ui, "获取 / 导入名单", .icon = CUI_ICON_DOWNLOAD, .size = CUI_SIZE_MD,
-                       .variant = CUI_BUTTON_PRIMARY, .tooltip = "打开导入弹窗（支持历史快照、礼物流水、TXT/CSV 文件与手动添加）")) {
+                       .variant = CUI_BUTTON_PRIMARY, .tooltip = "打开导入弹窗（支持上舰流水、历史快照、TXT/CSV 文件与手动添加）")) {
             app->import_guard_dialog = true;
         }
     }
@@ -538,7 +567,7 @@ void bm_page_guard_list(cui_ctx *ui, bm_app *app) {
                     }
                 } else {
                     if (cui_empty_state(ui, "目标列表为空", .icon = CUI_ICON_USERS,
-                                        .description = "点击下方快速获取今日舰长，或打开导入弹窗获取历史快照、流水及文件",
+                                        .description = "打开导入弹窗获取上舰流水、历史快照，或从文件导入名单",
                                         .action = "获取与导入名单")) {
                         app->import_guard_dialog = true;
                     }
@@ -610,35 +639,14 @@ void bm_page_guard_list(cui_ctx *ui, bm_app *app) {
     cui_dialog(ui, "获取与导入目标名单", &app->import_guard_dialog,
                .description = "选择数据来源以加载或合并目标舰长名单", .width = 540) {
         cui_column(ui, .gap = 14, .width = CUI_FILL) {
-            static const char *tabs[] = { "历史快照", "上舰流水", "文件导入", "手动添加" };
-            static const char *tab_icons[] = { CUI_ICON_CALENDAR, CUI_ICON_HISTORY, CUI_ICON_FOLDER_OPEN, CUI_ICON_USER_PLUS };
+            static const char *tabs[] = { "上舰流水", "历史快照", "文件导入", "手动添加" };
+            static const char *tab_icons[] = { CUI_ICON_HISTORY, CUI_ICON_CALENDAR, CUI_ICON_FOLDER_OPEN, CUI_ICON_USER_PLUS };
             cui_segmented(ui, "import_tabs_seg", tabs, 4, &app->import_guard_tab, .icons = tab_icons, .full_width = true);
 
-            if (app->import_guard_tab == 0) {
-                /* Source 1: Snapshot */
+            if (app->import_guard_tab == 1) {
+                /* Source 2: Snapshot */
                 cui_column(ui, .gap = 12, .width = CUI_FILL) {
-                    cui_box(ui, .width = CUI_FILL, .pad = 12, .radius = 8, .bg = CUI_COLOR_SURFACE_MUTED, .gap = 6) {
-                        cui_row(ui, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
-                            cui_column(ui, .gap = 2, .width = CUI_FILL) {
-                                cui_text(ui, "今日实时快照（推荐）", .font = CUI_FONT_MEDIUM);
-                                cui_muted(ui, "直接拉取当前直播间最新去重舰长榜单数据");
-                            }
-                            if (cui_button(ui, "拉取今日快照", .icon = CUI_ICON_ZAP, .variant = CUI_BUTTON_PRIMARY,
-                                           .size = CUI_SIZE_SM, .loading = app->guard_loading)) {
-                                int y, m, d;
-                                bm_date_today(&y, &m, &d);
-                                app->snapshot_date = (cui_date){ y, m, d };
-                                char dstr[16];
-                                snprintf(dstr, sizeof dstr, "%04d-%02d-%02d", y, m, d);
-                                bm_guard_list_fetch_snapshot(app, dstr);
-                                app->import_guard_dialog = false;
-                            }
-                        }
-                    }
-
-                    cui_separator(ui);
-
-                    cui_label(ui, "或者选择历史日期拉取历史快照：");
+                    cui_label(ui, "选择日期拉取历史快照：");
                     cui_row(ui, .gap = 8, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
                         cui_date_picker(ui, "snap_date_picker", &app->snapshot_date, .width = CUI_FILL);
                         char sel_dstr[16];
@@ -658,13 +666,23 @@ void bm_page_guard_list(cui_ctx *ui, bm_app *app) {
                         app->import_guard_dialog = false;
                     }
                 }
-            } else if (app->import_guard_tab == 1) {
-                /* Source 2: Gift Stream */
+            } else if (app->import_guard_tab == 0) {
+                /* Source 1: Gift Stream (default) */
+                int y, m, day;
+                bm_date_today(&y, &m, &day);
+                if (app->gift_range.start.year == 0 && app->gift_range.end.year == 0) {
+                    set_gift_range_preset(app, 2);
+                }
                 cui_column(ui, .gap = 12, .width = CUI_FILL) {
-                    cui_muted(ui, "拉取当前登录主播在时间段内的全部上舰礼物记录（含重复续费，拉取后可一键去重合并）：");
+                    cui_text(ui, "从 B 站接口获取指定时间段内的全部上舰礼物记录\n"
+                                 "（含重复续费，拉取后可一键去重合并）",
+                             .size = cui_theme_get(ui)->text_sm, .color = CUI_COLOR_TEXT_MUTED, .width = CUI_FILL);
+                    cui_text(ui, "接口仅支持昨天及以前的数据；本月和近 7 天均截至昨天。",
+                             .size = cui_theme_get(ui)->text_sm, .color = CUI_COLOR_TEXT_MUTED, .width = CUI_FILL);
 
                     cui_row(ui, .gap = 6, .width = CUI_FILL) {
-                        if (cui_button(ui, "本月流水", .size = CUI_SIZE_SM, .variant = CUI_BUTTON_OUTLINE, .width = CUI_GROW(1))) {
+                        if (cui_button(ui, "本月流水", .size = CUI_SIZE_SM, .variant = CUI_BUTTON_OUTLINE, .width = CUI_GROW(1),
+                                       .disabled = day == 1, .tooltip = day == 1 ? "本月暂无可查询日期，请选择上月或近 7 天" : "本月 1 日至昨天")) {
                             set_gift_range_preset(app, 0);
                         }
                         if (cui_button(ui, "上月流水", .size = CUI_SIZE_SM, .variant = CUI_BUTTON_OUTLINE, .width = CUI_GROW(1))) {
@@ -676,12 +694,11 @@ void bm_page_guard_list(cui_ctx *ui, bm_app *app) {
                     }
 
                     cui_date_range_picker(ui, "gift_range_picker", &app->gift_range,
-                                          .placeholder = "选择开始与结束日期", .width = CUI_FILL);
+                                          .placeholder = "选择开始与结束日期", .width = CUI_FILL, .no_presets = true);
 
                     if (cui_button(ui, "开始拉取区间上舰流水", .icon = CUI_ICON_HISTORY,
                                    .variant = CUI_BUTTON_PRIMARY, .full_width = true, .loading = app->guard_loading)) {
-                        start_fetch_gift_range(app);
-                        app->import_guard_dialog = false;
+                        if (start_fetch_gift_range(app)) app->import_guard_dialog = false;
                     }
                 }
             } else if (app->import_guard_tab == 2) {

@@ -238,7 +238,7 @@ void bm_page_about(cui_ctx *ui, bm_app *app) {
             }
             cui_column(ui, .gap = 4) {
                 cui_heading(ui, "BiliMessenger 2.0.0", 2);
-                cui_secondary(ui, "Bilibili 直播间大航海舰长私信群发与兑换码发放助手 · 轻量级原生桌面重制版");
+                cui_secondary(ui, "Bilibili 直播间大航海舰长私信群发与兑换码发放助手");
             }
             cui_spacer(ui);
             if (cui_button(ui, "关注 @轴伊Joi_Channel", .icon = CUI_ICON_HEART, .variant = CUI_BUTTON_PRIMARY)) {
@@ -317,10 +317,6 @@ void bm_page_about(cui_ctx *ui, bm_app *app) {
             cui_list_item(ui, "已保存私信模板", .icon = CUI_ICON_FILE_TEXT, .trailing = s3);
             cui_list_item(ui, "可用兑换码库存", .icon = CUI_ICON_GIFT, .trailing = s4);
             cui_list_item(ui, "累计记录已发私信", .icon = CUI_ICON_SEND, .trailing = s5);
-
-            cui_spacer(ui);
-            cui_separator(ui);
-            cui_muted(ui, "100% 兼容旧版 Electron config.json 数据格式");
         }
     }
 }
