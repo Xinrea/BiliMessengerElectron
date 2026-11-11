@@ -1,65 +1,105 @@
-# BiliMessenger
+<p align="center">
+  <img src="assets/icons/box.png" alt="BiliMessenger Logo" width="112" height="112">
+</p>
 
-![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/Xinrea/bili-messenger/release.yml)
-![GitHub release (with filter)](https://img.shields.io/github/v/release/Xinrea/bili-messenger)
-![GitHub all releases](https://img.shields.io/github/downloads/Xinrea/bili-messenger/total)
+<h1 align="center">BiliMessenger</h1>
 
-> Bilibili 舰长私信群发助手（基于 [CUI](https://github.com/yappologistic/CUI) C99 Immediate-Mode UI 框架原生构建）
+<p align="center">
+  Bilibili 舰长私信群发助手<br>
+  整理大航海名单、编写私信模板、分发兑换码，让舰长福利发放更省心。
+</p>
 
-> [!NOTE]
-> 程序下载地址：[https://github.com/Xinrea/bili-messenger/releases](https://github.com/Xinrea/bili-messenger/releases)
+<p align="center">
+  <a href="https://github.com/Xinrea/bili-messenger/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/Xinrea/bili-messenger/release.yml" alt="构建状态"></a>
+  <a href="https://github.com/Xinrea/bili-messenger/releases/latest"><img src="https://img.shields.io/github/v/release/Xinrea/bili-messenger" alt="最新版本"></a>
+  <a href="https://github.com/Xinrea/bili-messenger/releases"><img src="https://img.shields.io/github/downloads/Xinrea/bili-messenger/total" alt="累计下载"></a>
+</p>
 
-## 特性
+<p align="center">
+  <a href="https://github.com/Xinrea/bili-messenger/releases">下载软件</a> ·
+  <a href="#快速上手">快速上手</a> ·
+  <a href="https://github.com/Xinrea/bili-messenger/issues">问题反馈</a> ·
+  <a href="docs/development.md">构建与测试</a>
+</p>
 
-- **原生轻量架构**：使用 C99 + [CUI](https://github.com/yappologistic/CUI) 重构，告别 Chromium/Electron 体积膨胀与内存占用
-- **配置无感迁移**：100% 兼容旧版 Electron `config.json` 配置文件（登录凭据、舰长列表、私信模板、兑换码、已发送记录）
-- **完整业务能力**：
-  - **总览**：直播间状态、主播信息、近 60 天舰长数与粉丝数趋势曲线（`vtbs.moe`）
-  - **目标列表**：历史快照日期拉取（`guard.vjoi.cn` + 实时 `topList`）、上舰记录日期范围拉取（跨月自动切分 + 指数退避轮询）、UID/用户名添加用户、去重（保留最高航海等级）、TXT/CSV 导入导出、虚拟列表筛选与多选删除
-  - **模板管理**：多模板增删改、变量标签快捷插入（`{level}`、`{name}`、`{code}`、`{date}`、`{month}`、`{lastMonth}`、`{day}`）与实时预览
-  - **兑换码管理**：多行批量粘贴导入（自动去重去空行）、虚拟列表多选删除与清空
-  - **私信群发**：WBI 签名、`bili_ticket` 凭据注入、64 位 `msg_key` 精确保存、可配置发送间隔、失败自动归入剩余列表、2 分钟内一键撤回
-  - **设置**：扫码登录（内置二维码生成与轮询）、Cookie 手动登录、深浅色主题切换、启动自动校验登录状态与 GitHub Release 版本更新提示
-  - **关于 / 问题反馈**：通过 PowerLive 匿名提交问题描述和可选邮箱，自动附带软件版本、系统类型和诊断日志（可预览或取消）；本地保存草稿、日志快照及回执，重试沿用原编号和附件并遵守限流等待
+## 界面预览
 
-### 反馈诊断日志
+![BiliMessenger 数据总览：直播间信息、大航海名单构成、舰长与粉丝趋势](screenshot.png)
 
-在「关于软件」点击「问题反馈」打开反馈弹窗。关闭弹窗不会清空草稿，也不会取消正在进行的提交；再次打开可继续查看状态和回执。
+*v2.0 原生版在 macOS 上使用本地数据的实际主界面。直播间信息与历史趋势需要联网加载，展示结果取决于数据源。*
 
-诊断记录在本次运行期间自动采集，内存中保留最近 256 条应用及请求日志，带时间和 INFO / WARN / ERROR 级别：
-- 应用启动／退出、配置加载／保存、文件读写结果、后台任务启动／完成及创建失败。
-- 账号检查、扫码登录成功、直播间绑定、名单／上舰记录获取、私信发送与撤回结果、群发结束／兑换码耗尽，以及反馈提交结果。
-- HTTP 状态、libcurl 错误码、可用的数字业务错误码、耗时和响应大小。
+## 下载与安装
 
-采集时只允许固定事件名称和数字字段，不记录完整 URL、查询参数、请求／响应正文、服务器错误原文、文件路径、Cookie、令牌、账号标识、私信内容或兑换码。没有直接截取 stdout / stderr 或系统日志，避免把第三方库的未脱敏输出附带出去。
-任务错误码 1/2/3 分别表示无效任务、内存分配失败、线程创建失败；文件／配置结果码 1 表示失败；撤回码 120 表示超过两分钟；群发停止码 1 表示兑换码耗尽。业务错误保留原数字码。
+前往 **[GitHub Releases](https://github.com/Xinrea/bili-messenger/releases)**，按操作系统和处理器架构选择对应文件，并参考该版本的发布说明安装。
 
-反馈默认附带 `diagnostics.log`（UTF-8，最多 64 KiB）。日志预览是独立的可滚动阅读视图，支持复制完整快照和返回表单；提交前也可刷新快照或取消勾选。预览过的快照不会被提交动作悄悄替换。
-日志与草稿原子保存，网络失败或重启后的重试仍使用原编号及相同字节。未提交反馈时不会主动上传诊断记录；它不是崩溃转储，也不保留上次运行的完整日志。
+- **macOS / Windows**：发布包以 Releases 中实际提供的文件为准。
+- **Linux**：请参考[构建与测试](docs/development.md)从源码编译。
 
-## 构建与测试
+本 README 介绍当前源码中的 **v2.0 原生版**，基于 C99 + [CUI](https://github.com/yappologistic/CUI) 构建，不再依赖 Electron。已发布版本可能与截图、功能说明不同，需要体验当前源码时请自行构建。
 
-### 依赖
+## 主要功能
 
-- CMake >= 3.16
-- 支持 C99 的编译器（AppleClang / GCC /Clang / MSVC）
-- `libcurl`（macOS / Linux 系统自带；Windows 可通过 `vcpkg install curl` 或 MSYS2 安装）
+| 功能 | 可以做什么 |
+| --- | --- |
+| 数据总览 | 查看直播间状态、主播信息、目标名单构成，以及近 60 天的舰长数与粉丝数趋势 |
+| 目标列表 | 按历史快照或上舰日期范围获取名单；通过 UID / 用户名添加用户；支持去重、筛选、多选删除和 TXT / CSV 导入导出 |
+| 私信模板 | 管理多个模板，快捷插入昵称、航海等级、日期和兑换码等变量，实时预览内容 |
+| 兑换码库 | 批量粘贴导入，自动去重、去空行，支持多选删除与清空 |
+| 私信群发 | 设置发送间隔，查看发送进度，保留失败目标，并在发送后两分钟内发起撤回 |
+| 账号与设置 | 扫码或手动 Cookie 登录、启动时校验登录状态、深浅色主题切换和新版本提示 |
 
-### 编译步骤
+名单数据来自 `guard.vjoi.cn` 与 Bilibili 接口，趋势数据来自 `vtbs.moe`；数据完整性和可用性取决于对应服务。
 
-```bash
-# 拉取子模块（若克隆时未带 --recursive）
-git submodule update --init --recursive
+## 快速上手
 
-# 配置并编译 Release 版本
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j8
+1. **登录并绑定直播间**：打开「系统设置」，使用扫码或 Cookie 登录，设置目标直播间。
+2. **整理发送对象**：在「目标列表」获取上舰名单，或手动添加、导入用户；发送前核对范围与人数。
+3. **准备私信内容**：在「模板管理」创建模板，通过变量插入个性化内容，并检查预览。
+4. **按需导入兑换码**：模板使用 `{code}` 时，先在「兑换码库」准备足够的兑换码。
+5. **确认后发送**：在「私信群发」选择模板、设置发送间隔，确认目标与内容后再开始发送。
 
-# 运行单元测试
-ctest --test-dir build --output-on-failure -V
+请遵守 Bilibili 平台规则，避免发送骚扰信息。发送与撤回均受平台接口和风控限制；建议先用少量目标验证内容，不要依赖撤回来纠正批量误发。
+
+### 模板变量
+
+| 变量 | 含义 |
+| --- | --- |
+| `{name}` | 目标用户昵称 |
+| `{level}` | 大航海等级或自定义头衔 |
+| `{code}` | 从兑换码库取用的兑换码 |
+| `{date}` | 当前日期，格式为 `YYYY-MM-DD` |
+| `{month}` | 当前月份，1–12 |
+| `{lastMonth}` | 上个月份，1–12 |
+| `{day}` | 当前日，1–31 |
+
+例如：
+
+```text
+{name}，感谢你成为本月的{level}！这是你的专属兑换码：{code}
 ```
 
-### 运行程序
+## 数据与迁移
 
-- **macOS**：`./build/BiliMessenger.app/Contents/MacOS/BiliMessenger`（或直接打开 `build/BiliMessenger.app`）
-- **Linux / Windows**：`./build/BiliMessenger`（Windows 下为 `BiliMessenger.exe`）
+原生版兼容旧版 Electron 的 `config.json` 数据格式，包括登录凭据、舰长列表、私信模板、兑换码和已发送记录。升级或手动迁移前，建议先退出程序并备份配置。
+
+默认配置位置：
+
+| 系统 | 路径 |
+| --- | --- |
+| macOS | `~/Library/Application Support/bilimessenger/config.json` |
+| Windows | `%APPDATA%\bilimessenger\config.json` |
+| Linux | `$XDG_CONFIG_HOME/bilimessenger/config.json`，未设置时为 `~/.config/bilimessenger/config.json` |
+
+**配置包含登录凭据和业务数据，请勿公开上传或作为问题反馈附件。**
+
+## 问题反馈
+
+- **软件内反馈**：在「关于软件」→「问题反馈」中填写问题描述，可选填邮箱。支持预览或取消附带诊断日志；关闭弹窗后仍会保留草稿和提交状态。
+- **GitHub Issues**：前往 [Issues](https://github.com/Xinrea/bili-messenger/issues) 描述复现步骤、系统和软件版本。请先移除截图或附件中的 Cookie、兑换码及私信内容等敏感信息。
+
+诊断日志仅在提交反馈时上传，不会主动上报。采集范围、隐私处理和重试机制见[反馈与诊断日志](docs/diagnostics.md)。
+
+## 开发与许可
+
+- [构建与测试](docs/development.md)：依赖安装、编译、运行和单元测试。
+- [GNU GPL v3](LICENSE)：项目开源许可。
