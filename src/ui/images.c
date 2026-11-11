@@ -1,4 +1,5 @@
 #include "ui/images.h"
+#include "ui/guard_icons_data.h"
 #include "core/http.h"
 #include "core/jobs.h"
 #include "core/util.h"
@@ -38,14 +39,22 @@ typedef struct {
 static img_entry g_cache[BM_IMAGE_CACHE_CAP];
 static int g_cache_count = 0;
 static int g_active_downloads = 0;
+static cui_texture g_guard_icons[4] = { 0 };
 
 void bm_images_init(void) {
     memset(g_cache, 0, sizeof g_cache);
+    memset(g_guard_icons, 0, sizeof g_guard_icons);
     g_cache_count = 0;
     g_active_downloads = 0;
 }
 
 void bm_images_shutdown(cui_ctx *ui) {
+    for (int k = 1; k <= 3; k++) {
+        if (g_guard_icons[k] && ui) {
+            cui_image_destroy(ui, g_guard_icons[k]);
+        }
+        g_guard_icons[k] = 0;
+    }
     for (int i = 0; i < g_cache_count; i++) {
         if (g_cache[i].tex && ui) {
             cui_image_destroy(ui, g_cache[i].tex);
@@ -173,6 +182,32 @@ cui_texture bm_image_get(cui_ctx *ui, const char *url, int *out_w, int *out_h) {
         free(t);
     }
     return 0;
+}
+
+cui_texture bm_guard_icon_get(cui_ctx *ui, int guard_level) {
+    if (!ui || guard_level < 1 || guard_level > 3) return 0;
+    if (g_guard_icons[guard_level]) return g_guard_icons[guard_level];
+
+    const unsigned char *buf = NULL;
+    size_t len = 0;
+    if (guard_level == 1) {
+        buf = bm_guard_icon_1_png;
+        len = sizeof bm_guard_icon_1_png;
+    } else if (guard_level == 2) {
+        buf = bm_guard_icon_2_png;
+        len = sizeof bm_guard_icon_2_png;
+    } else {
+        buf = bm_guard_icon_3_png;
+        len = sizeof bm_guard_icon_3_png;
+    }
+
+    int w = 0, h = 0, comp = 0;
+    unsigned char *rgba = stbi_load_from_memory((const stbi_uc *)buf, (int)len, &w, &h, &comp, 4);
+    if (rgba && w > 0 && h > 0) {
+        g_guard_icons[guard_level] = cui_image_create(ui, w, h, rgba);
+    }
+    if (rgba) stbi_image_free(rgba);
+    return g_guard_icons[guard_level];
 }
 
 cui_texture bm_qr_create_texture(cui_ctx *ui, const char *text, int *out_px) {

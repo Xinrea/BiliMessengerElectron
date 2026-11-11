@@ -130,6 +130,9 @@ void bm_toast_flush(bm_app *app, cui_ctx *ui);
 void bm_render_setting_alert(cui_ctx *ui, bm_app *app);
 void bm_sync_theme_tokens(cui_ctx *ui, bm_app *app);
 void bm_refresh_guard_stats_and_filters(bm_app *app, bool save_to_disk);
+void bm_guard_tier_colors(cui_ctx *ui, int guard_level, cui_color *bg, cui_color *border, cui_color *fg);
+void bm_guard_badge(cui_ctx *ui, const bm_guard *g);
+bool bm_guard_filter_chip(cui_ctx *ui, const char *id, int guard_level, const char *label, bool *active);
 
 /* Page renderers & actions */
 void bm_page_summary(cui_ctx *ui, bm_app *app);

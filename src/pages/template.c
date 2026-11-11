@@ -235,13 +235,11 @@ void bm_page_template(cui_ctx *ui, bm_app *app) {
             /* Simulated Bilibili Whisper Window */
             cui_box(ui, .width = CUI_FILL, .height = CUI_FILL, .pad = 14, .radius = 12,
                     .bg = CUI_COLOR_SURFACE_MUTED, .gap = 10, .scroll_y = true) {
-                cui_row(ui, .align = CUI_ALIGN_CENTER, .width = CUI_FILL, .gap = 8) {
+                cui_row(ui, .align = CUI_ALIGN_CENTER, .width = CUI_FILL, .gap = 6) {
                     cui_texture rtex = bm_image_get(ui, sample_g.face, NULL, NULL);
                     cui_avatar(ui, sample_g.username, .size = 26, .image = rtex);
-                    char to_hdr[160];
-                    snprintf(to_hdr, sizeof to_hdr, "发往：%s (%s)",
-                             sample_g.username, bm_guard_level_str(&sample_g));
-                    cui_text(ui, to_hdr, .font = CUI_FONT_MEDIUM, .size = 12);
+                    bm_guard_badge(ui, &sample_g);
+                    cui_text(ui, sample_g.username, .font = CUI_FONT_MEDIUM, .size = 12.5f, .nowrap = true);
                     cui_spacer(ui);
                     cui_copy_button(ui, "copy_preview_msg", preview_text);
                 }

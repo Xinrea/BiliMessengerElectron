@@ -169,3 +169,85 @@ void bm_render_setting_alert(cui_ctx *ui, bm_app *app) {
         }
     }
 }
+
+void bm_guard_tier_colors(cui_ctx *ui, int guard_level, cui_color *bg, cui_color *border, cui_color *fg) {
+    bool dark = (cui_get_theme_mode(ui) == CUI_THEME_DARK);
+    if (guard_level == 1) {
+        /* 总督 (Governor): Bilibili official #b72e2e red-gold palette */
+        if (bg)     *bg     = dark ? CUI_RGBA(0xE12D392E) : CUI_RGB(0xFFF1F0);
+        if (border) *border = dark ? CUI_RGBA(0xFF6B6B73) : CUI_RGB(0xFFA39E);
+        if (fg)     *fg     = dark ? CUI_RGB(0xFF8A8A)    : CUI_RGB(0xB72E2E);
+    } else if (guard_level == 2) {
+        /* 提督 (Admiral): Bilibili official #6f3ec0 royal purple palette */
+        if (bg)     *bg     = dark ? CUI_RGBA(0x9333EA2E) : CUI_RGB(0xF6EEFF);
+        if (border) *border = dark ? CUI_RGBA(0xB784F773) : CUI_RGB(0xD3ADF7);
+        if (fg)     *fg     = dark ? CUI_RGB(0xD8B4FE)    : CUI_RGB(0x6F3EC0);
+    } else if (guard_level == 3) {
+        /* 舰长 (Captain): Bilibili official ocean blue palette */
+        if (bg)     *bg     = dark ? CUI_RGBA(0x1677FF2E) : CUI_RGB(0xEBF4FF);
+        if (border) *border = dark ? CUI_RGBA(0x529BFF73) : CUI_RGB(0x91CAFF);
+        if (fg)     *fg     = dark ? CUI_RGB(0x7CC0FF)    : CUI_RGB(0x1D5BD6);
+    } else {
+        /* Custom user title */
+        if (bg)     *bg     = dark ? CUI_RGBA(0x14B8A629) : CUI_RGB(0xE6FFFB);
+        if (border) *border = dark ? CUI_RGBA(0x2DD4BF66) : CUI_RGB(0x87E8DE);
+        if (fg)     *fg     = dark ? CUI_RGB(0x5EEAD4)    : CUI_RGB(0x0D9488);
+    }
+}
+
+void bm_guard_badge(cui_ctx *ui, const bm_guard *g) {
+    if (!g) return;
+    const char *lvl_txt = bm_guard_level_str(g);
+    if (g->guard_level < 1 || g->guard_level > 3) {
+        cui_badge(ui, lvl_txt, .tone = CUI_TONE_TEAL);
+        return;
+    }
+
+    cui_color bg, border, fg;
+    bm_guard_tier_colors(ui, g->guard_level, &bg, &border, &fg);
+    cui_texture gtex = bm_guard_icon_get(ui, g->guard_level);
+
+    cui_row(ui, .align = CUI_ALIGN_CENTER, .gap = 4,
+            .pad_left = 4, .pad_right = 7, .pad_y = 2,
+            .radius = 999, .bg = bg, .border = 1.0f, .border_color = border) {
+        if (gtex) {
+            cui_image(ui, gtex, .width = CUI_PX(16), .height = CUI_PX(16));
+        }
+        cui_text(ui, lvl_txt, .font = CUI_FONT_MEDIUM, .size = 11.5f, .color = fg, .nowrap = true);
+    }
+}
+
+bool bm_guard_filter_chip(cui_ctx *ui, const char *id, int guard_level, const char *label, bool *active) {
+    bool is_on = active ? *active : true;
+    cui_id cid = cui_make_id(ui, id);
+    cui_rect r = cui_get_rect(ui, cid);
+    cui_vec2 mp = cui_mouse_pos(ui);
+    bool hovered = (r.w > 0 && mp.x >= r.x && mp.x < r.x + r.w && mp.y >= r.y && mp.y < r.y + r.h);
+    bool clicked = hovered && cui_mouse_clicked(ui, CUI_MOUSE_LEFT);
+    if (clicked && active) {
+        *active = !*active;
+        is_on = *active;
+    }
+
+    cui_color bg, border, fg;
+    if (is_on) {
+        bm_guard_tier_colors(ui, guard_level, &bg, &border, &fg);
+    } else {
+        bg = CUI_COLOR_SURFACE_MUTED;
+        border = CUI_COLOR_BORDER;
+        fg = CUI_COLOR_TEXT_SECONDARY;
+    }
+
+    cui_texture gtex = bm_guard_icon_get(ui, guard_level);
+    cui_row(ui, .id = id, .align = CUI_ALIGN_CENTER, .gap = 5,
+            .height = CUI_PX(30), .pad_left = 8, .pad_right = 11,
+            .radius = 15, .bg = bg, .border = hovered ? 1.5f : 1.0f, .border_color = border,
+            .opacity = is_on ? 1.0f : 0.65f) {
+        if (gtex) {
+            cui_image(ui, gtex, .width = CUI_PX(18), .height = CUI_PX(18));
+        }
+        cui_text(ui, label, .font = CUI_FONT_MEDIUM, .size = 12.5f, .color = fg, .nowrap = true);
+        cui_icon(ui, is_on ? CUI_ICON_CHECK : CUI_ICON_X, 12, fg);
+    }
+    return clicked;
+}

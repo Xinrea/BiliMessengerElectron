@@ -215,11 +215,29 @@ void bm_page_summary(cui_ctx *ui, bm_app *app) {
 
             if (app->stats.total > 0) {
                 cui_viz_item parts[3] = {
-                    { "总督", (float)app->stats.type1, CUI_RGB(0xEF4444) },
-                    { "提督", (float)app->stats.type2, CUI_RGB(0x8B5CF6) },
-                    { "舰长", (float)app->stats.type3, CUI_RGB(0xF59E0B) }
+                    { "总督", (float)app->stats.type1, CUI_RGB(0xE13D3D) },
+                    { "提督", (float)app->stats.type2, CUI_RGB(0x8B44E8) },
+                    { "舰长", (float)app->stats.type3, CUI_RGB(0x2B7DE9) }
                 };
-                cui_split_bar(ui, "guard_comp_bar", parts, 3, .height = 10, .format = "%.0f");
+                cui_split_bar(ui, "guard_comp_bar", parts, 3, .height = 10, .format = "%.0f", .no_legend = true);
+                cui_row(ui, .gap = 6, .wrap = true, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
+                    static const char *tier_names[3] = { "总督", "提督", "舰长" };
+                    int tier_counts[3] = { app->stats.type1, app->stats.type2, app->stats.type3 };
+                    for (int ti = 0; ti < 3; ti++) {
+                        int lvl = ti + 1;
+                        cui_color bg, border, fg;
+                        bm_guard_tier_colors(ui, lvl, &bg, &border, &fg);
+                        cui_texture gtex = bm_guard_icon_get(ui, lvl);
+                        char chip_txt[48];
+                        snprintf(chip_txt, sizeof chip_txt, "%s %d", tier_names[ti], tier_counts[ti]);
+                        cui_row(ui, .align = CUI_ALIGN_CENTER, .gap = 4,
+                                .pad_left = 5, .pad_right = 8, .pad_y = 2,
+                                .radius = 999, .bg = bg, .border = 1.0f, .border_color = border) {
+                            if (gtex) cui_image(ui, gtex, .width = CUI_PX(15), .height = CUI_PX(15));
+                            cui_text(ui, chip_txt, .font = CUI_FONT_MEDIUM, .size = 11.5f, .color = fg, .nowrap = true);
+                        }
+                    }
+                }
             } else {
                 cui_muted(ui, "目标列表为空，可前往「目标列表」拉取快照或上舰记录");
             }

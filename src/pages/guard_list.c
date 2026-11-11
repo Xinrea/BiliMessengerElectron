@@ -371,14 +371,14 @@ void bm_page_guard_list(cui_ctx *ui, bm_app *app) {
         snprintf(t2_str, sizeof t2_str, "提督 %d", app->stats.type2);
         snprintf(t3_str, sizeof t3_str, "舰长 %d", app->stats.type3);
 
-        cui_badge(ui, total_str, .tone = CUI_TONE_INFO);
-        if (cui_chip(ui, t1_str, &app->filters.type1, .icon = app->filters.type1 ? CUI_ICON_CIRCLE_CHECK : CUI_ICON_CIRCLE_X)) {
+        cui_badge(ui, total_str, .tone = CUI_TONE_NEUTRAL);
+        if (bm_guard_filter_chip(ui, "flt_guard_1", 1, t1_str, &app->filters.type1)) {
             bm_refresh_guard_stats_and_filters(app, true);
         }
-        if (cui_chip(ui, t2_str, &app->filters.type2, .icon = app->filters.type2 ? CUI_ICON_CIRCLE_CHECK : CUI_ICON_CIRCLE_X)) {
+        if (bm_guard_filter_chip(ui, "flt_guard_2", 2, t2_str, &app->filters.type2)) {
             bm_refresh_guard_stats_and_filters(app, true);
         }
-        if (cui_chip(ui, t3_str, &app->filters.type3, .icon = app->filters.type3 ? CUI_ICON_CIRCLE_CHECK : CUI_ICON_CIRCLE_X)) {
+        if (bm_guard_filter_chip(ui, "flt_guard_3", 3, t3_str, &app->filters.type3)) {
             bm_refresh_guard_stats_and_filters(app, true);
         }
 
@@ -643,19 +643,13 @@ void bm_page_guard_list(cui_ctx *ui, bm_app *app) {
                             cui_texture ftex = bm_image_get(ui, g->face, NULL, NULL);
                             cui_avatar(ui, g->username[0] ? g->username : "U", .size = 36, .image = ftex);
 
-                            const char *lvl_txt = bm_guard_level_str(g);
-                            cui_tone tone = CUI_TONE_WARNING;
-                            if (g->guard_level == 1) tone = CUI_TONE_DANGER;
-                            else if (g->guard_level == 2) tone = CUI_TONE_VIOLET;
-                            else if (g->guard_level == 0) tone = CUI_TONE_TEAL;
-
                             char uid_txt[48], uid_raw[32];
                             snprintf(uid_raw, sizeof uid_raw, "%llu", (unsigned long long)g->uid);
                             snprintf(uid_txt, sizeof uid_txt, "UID %s", uid_raw);
 
                             cui_column(ui, .gap = 2, .width = CUI_FILL) {
                                 cui_row(ui, .gap = 6, .align = CUI_ALIGN_CENTER) {
-                                    cui_badge(ui, lvl_txt, .tone = tone);
+                                    bm_guard_badge(ui, g);
                                     cui_text(ui, g->username, .font = CUI_FONT_MEDIUM, .size = 14, .nowrap = true);
                                 }
                                 cui_muted(ui, uid_txt);
