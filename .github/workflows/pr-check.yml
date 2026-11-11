@@ -1,0 +1,46 @@
+name: PR Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Install libcurl via vcpkg
+        if: runner.os == 'Windows'
+        run: vcpkg install curl:x64-windows
+
+      - name: Configure macOS
+        if: runner.os == 'macOS'
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBM_BUILD_TESTS=ON
+
+      - name: Configure Windows
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build -A x64 -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Release -DBM_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config Release -j4
+
+      - name: Run unit tests
+        run: ctest --test-dir build -C Release --output-on-failure --no-tests=error -V
