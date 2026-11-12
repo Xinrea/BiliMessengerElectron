@@ -16,7 +16,7 @@ static void render_title_bar(cui_ctx *ui, bm_app *app) {
         cui_row(ui, .align = CUI_ALIGN_CENTER, .gap = 7, .pad_left = left_pad, .pad_right = 12) {
             cui_icon(ui, CUI_ICON_SEND, 15, CUI_COLOR_ACCENT_STRONG);
             cui_text(ui, "BiliMessenger", .font = CUI_FONT_MEDIUM, .size = 13.5f, .nowrap = true);
-            cui_badge(ui, "v2.0.0", .tone = CUI_TONE_NEUTRAL);
+            cui_badge(ui, "v" BM_VERSION, .tone = CUI_TONE_NEUTRAL);
         }
 
         /* Center: Dedicated Draggable Region with current section indicator */
@@ -277,7 +277,7 @@ static void render_status_bar(cui_ctx *ui, bm_app *app) {
             if (cui_status_bar_item(ui, interval_txt, .icon = CUI_ICON_CLOCK)) {
                 app->page = BM_PAGE_SETTING;
             }
-            cui_status_bar_text(ui, "v2.0.0");
+            cui_status_bar_text(ui, "v" BM_VERSION);
         }
     }
 }

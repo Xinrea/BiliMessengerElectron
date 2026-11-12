@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       prerelease: ${{ steps.version.outputs.prerelease }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Classify release tag
         id: version
@@ -20,6 +21,9 @@ jobs:
           TAG: ${{ github.ref_name }}
         shell: bash
         run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "version=$TAG" >> "$GITHUB_OUTPUT"
+          fi
           # SemVer build metadata does not affect prerelease status.
           version="${TAG%%+*}"
           if [[ "$GITHUB_REF" == refs/tags/* && "$version" == *-* ]]; then
@@ -31,13 +35,15 @@ jobs:
   build-macos:
     needs: release-metadata
     runs-on: macos-latest
+    env:
+      BM_RELEASE_VERSION: ${{ needs.release-metadata.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Configure and Build
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBM_RELEASE_VERSION="$BM_RELEASE_VERSION"
           cmake --build build --config Release -j4
       - name: Run Unit Tests
         run: ctest --test-dir build --output-on-failure -V
@@ -61,6 +67,8 @@ jobs:
   build-windows:
     needs: release-metadata
     runs-on: windows-latest
+    env:
+      BM_RELEASE_VERSION: ${{ needs.release-metadata.outputs.version }}
     defaults:
       run:
         shell: pwsh
@@ -74,6 +82,7 @@ jobs:
       - name: Configure and Build
         run: |
           cmake -S . -B build -A x64 `
+            "-DBM_RELEASE_VERSION=$env:BM_RELEASE_VERSION" `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows-static `
             '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>' `

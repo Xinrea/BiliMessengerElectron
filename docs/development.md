@@ -84,6 +84,10 @@ python3 assets/icons/generate.py
 
 发布 tag 使用 SemVer 格式（可带 `v` 前缀），例如 `v2.0.1`。带预发布后缀的 tag（如 `v2.1.0-beta.1`、`v2.1.0-rc.1`）会自动标记为 GitHub prerelease；`+` 后的构建元数据不影响该判断。两个平台共用同一判断结果。客户端通过 GitHub `/releases/latest` 获取正式版，并与 CMake 提供的 `BM_VERSION` 做语义化版本比较；不会提示升级到更低或相同版本，构建元数据不参与版本优先级比较。
 
+Release 工作流将 tag 通过 `BM_RELEASE_VERSION` 传给 CMake，去掉可选的 `v` 前缀后作为应用完整版本号，用于界面、反馈、更新比较和 Windows 安装程序的显示版本。macOS bundle 与 Windows 安装程序文件资源仍使用纯数字 `PROJECT_VERSION`。tag 的主、次、修订版本必须与 `CMakeLists.txt` 中的项目版本一致，否则构建失败，避免应用和安装包版本不一致。
+
+本地验证 beta 可使用 `cmake -S . -B build -DBM_RELEASE_VERSION=v2.0.0-beta.1`，随后正常构建、测试。未指定时默认使用项目正式版本；该参数会保存在构建目录的 CMake 缓存中，恢复默认需传 `-DBM_RELEASE_VERSION=`。手动触发分支构建的 Release 工作流会显式传入空值。beta 仍只检查最新正式版：不会退回旧的 `v1.5.5`，但能识别之后的 `v2.0.0` 正式版。
+
 Windows 发布构建不同于上面的默认动态链接开发构建：使用 `curl[core,ssl]:x64-windows-static`、静态 CUI 和静态 MSVC 运行库。curl 的 `ssl` feature 在 Windows 上启用 Schannel，HTTPS 使用 Windows 证书存储，不需要附带 OpenSSL DLL 或 CA 文件。两种发布形式使用同一份应用 exe，不打包测试程序、静态库或构建目录中的其他文件。
 
 本地复现 Windows 发布打包（PowerShell；需要 Inno Setup 6.3+）：
