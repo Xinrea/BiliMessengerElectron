@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icons/box.png" alt="BiliMessenger Logo" width="112" height="112">
+  <img src="assets/icons/box.svg" alt="BiliMessenger Logo" width="112" height="112">
 </p>
 
 <h1 align="center">BiliMessenger</h1>
