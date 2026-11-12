@@ -95,9 +95,15 @@ void bm_guard_note_send_result(
     const bm_guard *target,
     bool delivered
 ) {
-    if (!target || target->uid == 0) return;
-    if (delivered) bm_guard_list_remove_uid(roster, target->uid);
-    bm_guard_list_remove_uid(queue, target->uid);
+    if (!target) return;
+    uint64_t uid = target->uid;
+    if (uid == 0) {
+        /* Invalid records have no identity: advance one entry, keep the roster. */
+        bm_guard_list_remove_at(queue, bm_guard_list_find_uid(queue, 0));
+        return;
+    }
+    if (delivered) bm_guard_list_remove_uid(roster, uid);
+    bm_guard_list_remove_uid(queue, uid);
 }
 
 const char *bm_guard_level_str(const bm_guard *g) {
@@ -153,21 +159,35 @@ void bm_guard_compute_stats(const bm_guard_list *list, bm_guard_stats *stats) {
     }
 }
 
+static bool matches_filters(const bm_guard *g, const bm_guard_filters *filters) {
+    if (g->custom_title[0] == '\0') {
+        if (g->guard_level == 1) return filters->type1;
+        if (g->guard_level == 2) return filters->type2;
+        if (g->guard_level == 3) return filters->type3;
+    }
+    return true;
+}
+
 void bm_guard_apply_filters(const bm_guard_list *src, const bm_guard_filters *filters, bm_guard_list *dst) {
     bm_guard_list_clear(dst);
     if (!src || !filters) return;
     for (int i = 0; i < src->count; i++) {
         const bm_guard *g = &src->items[i];
-        bool keep = true;
-        if (g->custom_title[0] == '\0') {
-            if (g->guard_level == 1) keep = filters->type1;
-            else if (g->guard_level == 2) keep = filters->type2;
-            else if (g->guard_level == 3) keep = filters->type3;
-        }
-        if (keep) {
+        if (matches_filters(g, filters)) {
             bm_guard_list_push(dst, g);
         }
     }
+}
+
+void bm_guard_prune_queue(const bm_guard_list *roster, const bm_guard_filters *filters, bm_guard_list *queue) {
+    int w = 0;
+    for (int r = 0; r < queue->count; r++) {
+        int index = bm_guard_list_find_uid(roster, queue->items[r].uid);
+        if (index < 0 || !matches_filters(&roster->items[index], filters)) continue;
+        if (w != r) queue->items[w] = queue->items[r];
+        w++;
+    }
+    queue->count = w;
 }
 
 static int effective_level_rank(const bm_guard *g) {

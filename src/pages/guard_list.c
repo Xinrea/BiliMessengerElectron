@@ -65,7 +65,7 @@ static void on_snapshot_loaded(void *raw, void *user) {
     app->guard_loading = false;
     if (d->ok) {
         bm_guard_list_copy(&app->store.original_guards, &d->list);
-        bm_refresh_guard_stats_and_filters(app, true);
+        bm_guard_roster_replaced(app);
         char msg[128];
         snprintf(msg, sizeof msg, "已加载 %s 快照（共 %d 人）", d->date_str, d->list.count);
         bm_toast_push(app, msg, NULL, CUI_TONE_SUCCESS);
@@ -123,7 +123,7 @@ static void on_gift_loaded(void *raw, void *user) {
     app->guard_loading = false;
     if (d->ok) {
         bm_guard_list_copy(&app->store.original_guards, &d->list);
-        bm_refresh_guard_stats_and_filters(app, true);
+        bm_guard_roster_replaced(app);
         char msg[128];
         snprintf(msg, sizeof msg, "上舰记录拉取完成（共 %d 条）", d->list.count);
         bm_toast_push(app, msg, NULL, CUI_TONE_SUCCESS);
@@ -411,7 +411,7 @@ static void open_import_file_dialog(bm_app *app) {
     };
     if (cui_app_file_dialog(NULL, &fopts, path, sizeof path)) {
         if (bm_guard_import_file(&app->store.original_guards, path)) {
-            bm_refresh_guard_stats_and_filters(app, true);
+            bm_guard_roster_replaced(app);
             bm_toast_push(app, "导入列表成功", path, CUI_TONE_SUCCESS);
         } else {
             bm_toast_push(app, "导入失败", "无法读取或解析所选文件", CUI_TONE_DANGER);
@@ -717,7 +717,7 @@ void bm_page_guard_list(cui_ctx *ui, bm_app *app) {
                     } else if (dz > 0) {
                         const char *dropped = cui_dropped_file(ui, 0);
                         if (dropped && bm_guard_import_file(&app->store.original_guards, dropped)) {
-                            bm_refresh_guard_stats_and_filters(app, true);
+                            bm_guard_roster_replaced(app);
                             bm_toast_push(app, "拖拽导入成功", dropped, CUI_TONE_SUCCESS);
                             app->import_guard_dialog = false;
                         } else {

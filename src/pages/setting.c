@@ -176,7 +176,7 @@ static void on_room_saved(void *raw, void *user) {
     if (changed) {
         bm_guard_list_clear(&app->store.guards);
         bm_guard_list_clear(&app->store.original_guards);
-        bm_refresh_guard_stats_and_filters(app, true);
+        bm_guard_roster_replaced(app);
         app->summary_loaded = false;
         bm_summary_refresh(app);
         bm_guard_list_refresh_all(app);
