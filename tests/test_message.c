@@ -257,6 +257,35 @@ static void test_refresh_during_recall(void) {
     destroy_app(app);
 }
 
+static void test_duplicate_uid_filters(void) {
+    for (int governor_first = 0; governor_first <= 1; governor_first++) {
+        for (int keep_governor = 0; keep_governor <= 1; keep_governor++) {
+            bm_app *app = new_app();
+            bm_guard_list_clear(&app->store.original_guards);
+            bm_guard captain = {.uid = 100, .username = "Captain", .guard_level = 3};
+            bm_guard governor = {.uid = 100, .username = "Governor", .guard_level = 1};
+            assert(bm_guard_list_push(&app->store.original_guards, governor_first ? &governor : &captain));
+            assert(bm_guard_list_push(&app->store.original_guards, governor_first ? &captain : &governor));
+            bm_refresh_guard_stats_and_filters(app, false);
+            app->msg_in_progress = true;
+            app->filters.type1 = keep_governor != 0;
+            app->filters.type3 = keep_governor == 0;
+            bm_refresh_guard_stats_and_filters(app, true);
+            assert(app->store.guards.count == 1);
+            assert(app->store.guards.items[0].guard_level == (keep_governor ? 1 : 3));
+            bm_refresh_guard_stats_and_filters(app, true);
+            assert(app->store.guards.count == 1);
+            /* The same UID still exists, but only in an excluded tier. */
+            int retained = bm_guard_list_find_uid(&app->store.original_guards, 100);
+            if (app->store.original_guards.items[retained].guard_level != (keep_governor ? 1 : 3)) retained++;
+            assert(bm_guard_list_remove_at(&app->store.original_guards, retained));
+            bm_refresh_guard_stats_and_filters(app, true);
+            assert(app->store.guards.count == 0);
+            destroy_app(app);
+        }
+    }
+}
+
 static void frame(cui_ctx *ui, bm_app *app) {
     for (int i = 0; i < 4; i++) {
         cui_begin_frame(ui, 1.0f / 60.0f);
@@ -326,6 +355,7 @@ int main(void) {
     test_pause_and_invalid_uid();
     test_spawn_failure_and_code_exhaustion();
     test_refresh_during_recall();
+    test_duplicate_uid_filters();
     test_pause_controls();
     puts("PASS send callbacks, live roster edits, imports, pause, invalid UID and stop paths");
     return 0;

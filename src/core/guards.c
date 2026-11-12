@@ -182,8 +182,18 @@ void bm_guard_apply_filters(const bm_guard_list *src, const bm_guard_filters *fi
 void bm_guard_prune_queue(const bm_guard_list *roster, const bm_guard_filters *filters, bm_guard_list *queue) {
     int w = 0;
     for (int r = 0; r < queue->count; r++) {
-        int index = bm_guard_list_find_uid(roster, queue->items[r].uid);
-        if (index < 0 || !matches_filters(&roster->items[index], filters)) continue;
+        const bm_guard *g = &queue->items[r];
+        if (!matches_filters(g, filters)) continue;
+        /* Gift history can contain multiple tiers for one UID. The first
+           roster occurrence does not represent every queued record. */
+        bool eligible = false;
+        for (int i = 0; i < roster->count; i++) {
+            if (roster->items[i].uid == g->uid && matches_filters(&roster->items[i], filters)) {
+                eligible = true;
+                break;
+            }
+        }
+        if (!eligible) continue;
         if (w != r) queue->items[w] = queue->items[r];
         w++;
     }
