@@ -70,7 +70,7 @@ jobs:
           submodules: recursive
       - name: Install libcurl via vcpkg
         # Schannel uses the Windows certificate store; no OpenSSL DLLs or CA bundle.
-        run: vcpkg install "curl[core,schannel]:x64-windows-static"
+        run: vcpkg install "curl[core,ssl]:x64-windows-static"
       - name: Configure and Build
         run: |
           cmake -S . -B build -A x64 `

@@ -72,12 +72,12 @@ ctest --test-dir build -C Release --output-on-failure -V
 
 发布 tag 使用 SemVer 格式（可带 `v` 前缀），例如 `v2.0.1`。带预发布后缀的 tag（如 `v2.1.0-beta.1`、`v2.1.0-rc.1`）会自动标记为 GitHub prerelease；`+` 后的构建元数据不影响该判断。两个平台共用同一判断结果。客户端通过 GitHub `/releases/latest` 获取正式版，并与 CMake 提供的 `BM_VERSION` 做语义化版本比较；不会提示升级到更低或相同版本，构建元数据不参与版本优先级比较。
 
-Windows 发布构建不同于上面的默认动态链接开发构建：使用 `curl[core,schannel]:x64-windows-static`、静态 CUI 和静态 MSVC 运行库。HTTPS 使用 Windows 证书存储，不需要附带 OpenSSL DLL 或 CA 文件。两种发布形式使用同一份应用 exe，不打包测试程序、静态库或构建目录中的其他文件。
+Windows 发布构建不同于上面的默认动态链接开发构建：使用 `curl[core,ssl]:x64-windows-static`、静态 CUI 和静态 MSVC 运行库。curl 的 `ssl` feature 在 Windows 上启用 Schannel，HTTPS 使用 Windows 证书存储，不需要附带 OpenSSL DLL 或 CA 文件。两种发布形式使用同一份应用 exe，不打包测试程序、静态库或构建目录中的其他文件。
 
 本地复现 Windows 发布打包（PowerShell；需要 Inno Setup 6.3+）：
 
 ```powershell
-vcpkg install "curl[core,schannel]:x64-windows-static"
+vcpkg install "curl[core,ssl]:x64-windows-static"
 cmake -S . -B build-release -A x64 `
   -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
   -DVCPKG_TARGET_TRIPLET=x64-windows-static `
