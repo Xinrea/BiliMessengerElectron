@@ -325,30 +325,6 @@ static void render_command_palette(cui_ctx *ui, bm_app *app) {
     }
 }
 
-static void render_update_dialog(cui_ctx *ui, bm_app *app) {
-    char title[128];
-    snprintf(title, sizeof title, "发现新版本 %s", app->update_tag);
-    cui_dialog(ui, title, &app->update_dialog, .description = "是否前往 GitHub 下载最新版本？", .width = 480) {
-        if (app->update_body[0]) {
-            cui_box(ui, .width = CUI_FILL, .max_height = 240, .pad = 12, .bg = CUI_COLOR_SURFACE_MUTED,
-                    .radius = 8, .scroll_y = true) {
-                cui_text(ui, app->update_body);
-            }
-        }
-        cui_dialog_footer(ui) {
-            if (cui_button(ui, "暂不更新")) {
-                app->update_dialog = false;
-            }
-            if (cui_button(ui, "前往 GitHub 下载", .icon = CUI_ICON_EXTERNAL_LINK, .variant = CUI_BUTTON_PRIMARY)) {
-                if (app->update_url[0]) {
-                    cui_app_open_url(app->update_url);
-                }
-                app->update_dialog = false;
-            }
-        }
-    }
-}
-
 static void app_frame(cui_ctx *ui, void *user) {
     bm_app *app = (bm_app *)user;
 
@@ -420,7 +396,7 @@ static void app_frame(cui_ctx *ui, void *user) {
     }
 
     render_command_palette(ui, app);
-    render_update_dialog(ui, app);
+    bm_render_update_toast(ui, app);
     bm_render_feedback_dialog(ui, app);
 }
 
