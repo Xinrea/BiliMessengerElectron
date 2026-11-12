@@ -58,6 +58,18 @@ ctest --test-dir build -C Release --output-on-failure -V
 
 ## 测试与发布
 
+### 应用图标
+
+`assets/icons/box.svg` 是 logo 的矢量源文件，README 直接引用它。修改后使用 Python 3 和 `rsvg-convert`（macOS：`brew install librsvg`；Debian / Ubuntu：`apt install librsvg2-bin`）重新生成应用图标：
+
+```bash
+python3 assets/icons/generate.py
+```
+
+脚本生成 `box.png`、Windows 使用的多尺寸 `icon.ico` 和 macOS 使用的多尺寸 `icon.icns`。这些产物随源码提交，正常编译不需要额外安装图标生成工具。
+
+### 测试与打包
+
 测试默认开启，可通过 `-DBM_BUILD_TESTS=OFF` 关闭。测试覆盖核心逻辑、反馈持久化、反馈界面及 HTTP 提交等行为，具体目标见 [CMakeLists.txt](../CMakeLists.txt)。
 
 仓库的 [Release 工作流](../.github/workflows/release.yml) 构建并测试 macOS 和 Windows 版本：

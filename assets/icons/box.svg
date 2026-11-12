@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>BiliMessenger</title>
+  <desc>A yellow carton with a folded paper airplane on the front.</desc>
+  <!-- Carton silhouette and folded top, matching the original logo. -->
+  <path fill="#ffe43b" d="M33 82 73 11H223V175L196 245H33Z"/>
+  <path fill="#fff052" d="M196 82 223 11V175L196 245Z"/>
+  <path fill="#fff7ac" d="M60 35H214V62L209 44H55Z"/>
+  <path fill="#ffdf39" d="M33 82 55 44H209L196 82Z"/>
+  <path fill="#fbd139" d="M33 82H196V245H33Z"/>
+  <!-- Paper plane: a clear send silhouette with a recessed orange fold. -->
+  <path fill="#e99b23" d="m95 167 6 25 22-22 52-52Z"/>
+  <path fill="#fffdf2" d="m61 153 114-35-33 84-29-28 44-40-62 33Z"/>
+  <path fill="#ffedb3" d="m95 167 62-33-44 40-12 18Z"/>
+</svg>
