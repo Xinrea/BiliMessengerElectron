@@ -4,6 +4,7 @@
 #include "core/md5.h"
 #include "core/store.h"
 #include "core/util.h"
+#include "core/version.h"
 
 #ifdef NDEBUG
 #error "bm_tests requires assertions enabled in every build configuration"
@@ -514,7 +515,61 @@ static void test_electron_store_config_compat(void) {
     printf("PASS electron-store config.json load/save compatibility\n");
 }
 
+static void test_version_comparison(void) {
+    static const struct {
+        const char *a;
+        const char *b;
+        int order;
+    } cases[] = {
+        {"v2.0.0", "2.0.0", 0},
+        {"v1.9.9", "2.0.0", -1},
+        {"v2.0.1", "2.0.0", 1},
+        {"v2.10.0", "2.9.0", 1},
+        {"2.0.10", "2.0.9", 1},
+        {"10.0.0", "9.99.99", 1},
+        {"2.0.0-rc.1", "2.0.0", -1},
+        {"2.0.0-alpha", "2.0.0-alpha.1", -1},
+        {"2.0.0-alpha.1", "2.0.0-alpha.beta", -1},
+        {"2.0.0-alpha.beta", "2.0.0-beta", -1},
+        {"2.0.0-beta", "2.0.0-beta.2", -1},
+        {"2.0.0-beta.2", "2.0.0-beta.11", -1},
+        {"2.0.0-beta.11", "2.0.0-rc.1", -1},
+        {"2.0.0-rc.1", "2.0.0-rc.1+build", 0},
+        {"2.0.0-A", "2.0.0-a", -1},
+        {"2.0.0-1", "2.0.0-1a", -1},
+        {"2.0.0+build-123", "2.0.0+other.001", 0},
+        {"2.0.0-01a", "2.0.0-01b", -1},
+        {"99999999999999999999.0.0", "9999999999999999999.0.0", 1},
+        {"2.0.0-99999999999999999999", "2.0.0-9999999999999999999", 1},
+    };
+    for (size_t i = 0; i < sizeof cases / sizeof cases[0]; i++) {
+        int order = 42;
+        assert(bm_version_compare(cases[i].a, cases[i].b, &order));
+        assert(order == cases[i].order);
+        assert(bm_version_compare(cases[i].b, cases[i].a, &order));
+        assert(order == -cases[i].order);
+        assert(bm_version_compare(cases[i].a, cases[i].a, &order));
+        assert(order == 0);
+    }
+    static const char *invalid[] = {
+        NULL, "", "v", "2", "2.0", "2.0.0.1", "v02.0.0", "2.00.0", "2.0.00",
+        "2.0.0-", "2.0.0-01", "2.0.0-alpha.01", "2.0.0-alpha..1",
+        "2.0.0-alpha.", "2.0.0+", "2.0.0+build.", "2.0.0+build..1",
+        "2.0.0+build+other", "2.0.0-rc_1", " 2.0.0", "2.0.0\n", "release-2.0.0",
+    };
+    for (size_t i = 0; i < sizeof invalid / sizeof invalid[0]; i++) {
+        int order = 42;
+        assert(!bm_version_compare(invalid[i], "2.0.0", &order));
+        assert(order == 42);
+        assert(!bm_version_compare("2.0.0", invalid[i], &order));
+        assert(order == 42);
+    }
+    assert(!bm_version_compare("2.0.0", "2.0.0", NULL));
+    printf("PASS semantic version precedence and invalid version rejection\n");
+}
+
 int main(void) {
+    test_version_comparison();
     test_gift_stream_levels_and_headers();
     test_gift_stream_pagination();
     test_gift_stream_leap_months();
@@ -527,6 +582,6 @@ int main(void) {
     test_wbi_and_send_message();
     test_guards_templates_and_store();
     test_electron_store_config_compat();
-    printf("All 14 test suites passed!\n");
+    printf("All test suites passed!\n");
     return 0;
 }

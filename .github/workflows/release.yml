@@ -5,8 +5,31 @@ on:
     tags: '*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+  release-metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - name: Classify release tag
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          # SemVer build metadata does not affect prerelease status.
+          version="${TAG%%+*}"
+          if [[ "$GITHUB_REF" == refs/tags/* && "$version" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-macos:
+    needs: release-metadata
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,34 +45,80 @@ jobs:
         run: |
           cd build
           zip -r BiliMessenger-macOS.zip BiliMessenger.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BiliMessenger-macOS
+          path: build/BiliMessenger-macOS.zip
+          if-no-files-found: error
       - uses: ncipollo/release-action@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           artifacts: "build/BiliMessenger-macOS.zip"
           allowUpdates: true
+          prerelease: ${{ needs.release-metadata.outputs.prerelease == 'true' }}
           token: ${{ github.token }}
 
   build-windows:
+    needs: release-metadata
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Install libcurl via vcpkg
-        run: |
-          vcpkg install curl:x64-windows
+        # Schannel uses the Windows certificate store; no OpenSSL DLLs or CA bundle.
+        run: vcpkg install "curl[core,schannel]:x64-windows-static"
       - name: Configure and Build
         run: |
-          cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -A x64 `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+            '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>' `
+            -DCMAKE_POLICY_DEFAULT_CMP0091=NEW `
+            -DCUI_BUILD_SHARED=OFF -DBM_BUILD_TESTS=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build --config Release -j4
       - name: Run Unit Tests
-        run: ctest --test-dir build -C Release --output-on-failure -V
-      - name: Package Windows Executable
+        run: ctest --test-dir build -C Release --output-on-failure --no-tests=error -V
+      - name: Package Windows Standalone Executable
         run: |
-          Compress-Archive -Path build/Release/* -DestinationPath build/BiliMessenger-Windows-x64.zip
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Copy-Item build/Release/BiliMessenger.exe dist/BiliMessenger-Windows-x64.exe
+      - name: Build Windows Installer
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { throw "Inno Setup 6 is not installed" }
+          & $iscc "/DSourceDir=$pwd\build\Release" "/DOutputDir=$pwd\dist" build/BiliMessenger.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Smoke Test Windows Installer
+        run: |
+          $installDir = Join-Path $env:RUNNER_TEMP "BiliMessenger-install-test"
+          $installer = Start-Process -FilePath dist/BiliMessenger-Windows-x64-Setup.exe `
+            -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=`"$installDir`"" `
+            -Wait -PassThru
+          if ($installer.ExitCode -ne 0) { throw "Installer failed: $($installer.ExitCode)" }
+          $standalone = (Get-FileHash dist/BiliMessenger-Windows-x64.exe).Hash
+          $installed = (Get-FileHash "$installDir\BiliMessenger.exe").Hash
+          if ($standalone -ne $installed) { throw "Installed executable differs from standalone executable" }
+          if (!(Test-Path "$installDir\unins000.exe")) { throw "Uninstaller is missing" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BiliMessenger-Windows-x64-Standalone
+          path: dist/BiliMessenger-Windows-x64.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BiliMessenger-Windows-x64-Setup
+          path: dist/BiliMessenger-Windows-x64-Setup.exe
+          if-no-files-found: error
       - uses: ncipollo/release-action@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          artifacts: "build/BiliMessenger-Windows-x64.zip"
+          artifacts: "dist/BiliMessenger-Windows-x64.exe,dist/BiliMessenger-Windows-x64-Setup.exe"
+          artifactErrorsFailBuild: true
           allowUpdates: true
+          prerelease: ${{ needs.release-metadata.outputs.prerelease == 'true' }}
           token: ${{ github.token }}

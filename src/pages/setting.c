@@ -1,4 +1,5 @@
 #include "ui/app.h"
+#include "core/version.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,6 +56,7 @@ typedef struct {
     char body[2048];
     char url[512];
     bool has_update;
+    bool checked;
     bool manual;
 } update_job_data;
 
@@ -67,7 +69,11 @@ static void on_update_checked(void *raw, void *user) {
         bm_strlcpy(app->update_url, d->url, sizeof app->update_url);
         app->update_dialog = true;
     } else if (d->manual) {
-        bm_toast_push(app, "当前已是最新版本 (v2.0.0)", NULL, CUI_TONE_SUCCESS);
+        if (d->checked) {
+            bm_toast_push(app, "当前已是最新版本 (v" BM_VERSION ")", NULL, CUI_TONE_SUCCESS);
+        } else {
+            bm_toast_push(app, "检查更新失败，请稍后重试", NULL, CUI_TONE_WARNING);
+        }
     }
     free(d);
 }
@@ -75,9 +81,9 @@ static void on_update_checked(void *raw, void *user) {
 static void update_worker(void *raw) {
     update_job_data *d = (update_job_data *)raw;
     if (bm_bili_check_github_update(d->tag, sizeof d->tag, d->body, sizeof d->body, d->url, sizeof d->url, NULL)) {
-        if (d->tag[0] && strcmp(d->tag, "v2.0.0") != 0 && strcmp(d->tag, "v1.5.5") > 0) {
-            d->has_update = true;
-        }
+        int order = 0;
+        d->checked = bm_version_compare(d->tag, BM_VERSION, &order);
+        d->has_update = d->checked && order > 0;
     }
     bm_job_post_main(on_update_checked, d);
 }
