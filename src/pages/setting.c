@@ -1,5 +1,4 @@
 #include "ui/app.h"
-#include "core/version.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,64 +48,10 @@ void bm_setting_refresh_account(bm_app *app) {
     }
 }
 
-/* ---- Async Job 2: Startup update check ---- */
-
-typedef struct {
-    char tag[64];
-    char body[2048];
-    char url[512];
-    bool has_update;
-    bool checked;
-    bool manual;
-} update_job_data;
-
-static void on_update_checked(void *raw, void *user) {
-    update_job_data *d = (update_job_data *)raw;
-    bm_app *app = (bm_app *)user;
-    if (d->has_update) {
-        bm_strlcpy(app->update_tag, d->tag, sizeof app->update_tag);
-        bm_strlcpy(app->update_body, d->body, sizeof app->update_body);
-        bm_strlcpy(app->update_url, d->url, sizeof app->update_url);
-        app->update_dialog = true;
-    } else if (d->manual) {
-        if (d->checked) {
-            bm_toast_push(app, "当前已是最新版本 (v" BM_VERSION ")", NULL, CUI_TONE_SUCCESS);
-        } else {
-            bm_toast_push(app, "检查更新失败，请稍后重试", NULL, CUI_TONE_WARNING);
-        }
-    }
-    free(d);
-}
-
-static void update_worker(void *raw) {
-    update_job_data *d = (update_job_data *)raw;
-    if (bm_bili_check_github_update(d->tag, sizeof d->tag, d->body, sizeof d->body, d->url, sizeof d->url, NULL)) {
-        int order = 0;
-        d->checked = bm_version_compare(d->tag, BM_VERSION, &order);
-        d->has_update = d->checked && order > 0;
-    }
-    bm_job_post_main(on_update_checked, d);
-}
-
-static void trigger_manual_update_check(bm_app *app) {
-    update_job_data *u = (update_job_data *)calloc(1, sizeof *u);
-    if (u) {
-        u->manual = true;
-        if (bm_job_spawn(update_worker, u)) {
-            bm_toast_push(app, "正在检查 GitHub 最新版本...", NULL, CUI_TONE_INFO);
-        } else {
-            free(u);
-        }
-    }
-}
-
 void bm_setting_startup_checks(bm_app *app) {
     bm_setting_refresh_account(app);
     bm_guard_list_refresh_calendar(app);
-    update_job_data *u = (update_job_data *)calloc(1, sizeof *u);
-    if (u && !bm_job_spawn(update_worker, u)) {
-        free(u);
-    }
+    bm_update_check(app, false);
 }
 
 /* ---- Async Job 3: Generate QR Login URL ---- */
@@ -299,8 +244,9 @@ void bm_page_setting(cui_ctx *ui, bm_app *app) {
             cui_secondary(ui, "管理 Bilibili 登录凭据、目标直播间绑定、发送频率及界面主题");
         }
         cui_spacer(ui);
-        if (cui_button(ui, "检查版本更新", .icon = CUI_ICON_REFRESH_CW, .size = CUI_SIZE_SM)) {
-            trigger_manual_update_check(app);
+        if (cui_button(ui, "检查版本更新", .icon = CUI_ICON_REFRESH_CW, .size = CUI_SIZE_SM,
+                       .loading = app->update_checking, .disabled = app->update_checking)) {
+            bm_update_check(app, true);
         }
     }
 

@@ -132,9 +132,10 @@ typedef struct bm_app {
     bool feedback_dialog;
 
     /* Update check */
-    bool update_dialog;
+    bool update_checking;
+    bool update_toast_pending;
+    int update_toast_handle;
     char update_tag[64];
-    char update_body[2048];
     char update_url[512];
 } bm_app;
 
@@ -143,6 +144,9 @@ void bm_app_shutdown(bm_app *app, cui_ctx *ui);
 
 void bm_toast_push(bm_app *app, const char *title, const char *desc, cui_tone tone);
 void bm_toast_flush(bm_app *app, cui_ctx *ui);
+
+void bm_update_check(bm_app *app, bool manual);
+void bm_render_update_toast(cui_ctx *ui, bm_app *app);
 
 void bm_render_setting_alert(cui_ctx *ui, bm_app *app);
 void bm_sync_theme_tokens(cui_ctx *ui, bm_app *app);

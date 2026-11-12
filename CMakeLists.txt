@@ -58,6 +58,7 @@ set(BM_APP_SOURCES
     src/ui/images.c
     src/ui/fonts.c
     src/ui/common.c
+    src/ui/update.c
     src/pages/summary.c
     src/pages/guard_list.c
     src/pages/template.c
@@ -112,6 +113,8 @@ if(BM_BUILD_TESTS)
     target_link_libraries(bm_feedback_tests PRIVATE bm_core)
     add_executable(bm_feedback_ui_tests tests/test_feedback_ui.c src/pages/about.c)
     target_link_libraries(bm_feedback_ui_tests PRIVATE bm_core cui::cui)
+    add_executable(bm_update_ui_tests tests/test_update_ui.c src/ui/update.c src/ui/fonts.c src/pages/about.c)
+    target_link_libraries(bm_update_ui_tests PRIVATE bm_core cui::cui)
     add_executable(bm_guard_import_ui_tests tests/test_guard_import_ui.c src/ui/fonts.c)
     target_link_libraries(bm_guard_import_ui_tests PRIVATE bm_core cui::cui)
     target_include_directories(bm_guard_import_ui_tests PRIVATE third_party/CUI/src)
@@ -120,16 +123,19 @@ if(BM_BUILD_TESTS)
         target_compile_options(bm_tests PRIVATE /UNDEBUG)
         target_compile_options(bm_feedback_tests PRIVATE /UNDEBUG)
         target_compile_options(bm_feedback_ui_tests PRIVATE /UNDEBUG)
+        target_compile_options(bm_update_ui_tests PRIVATE /UNDEBUG)
         target_compile_options(bm_guard_import_ui_tests PRIVATE /UNDEBUG)
     else()
         target_compile_options(bm_tests PRIVATE -UNDEBUG)
         target_compile_options(bm_feedback_tests PRIVATE -UNDEBUG)
         target_compile_options(bm_feedback_ui_tests PRIVATE -UNDEBUG)
+        target_compile_options(bm_update_ui_tests PRIVATE -UNDEBUG)
         target_compile_options(bm_guard_import_ui_tests PRIVATE -UNDEBUG)
     endif()
     add_test(NAME bm_tests COMMAND bm_tests)
     add_test(NAME bm_feedback_tests COMMAND bm_feedback_tests)
     add_test(NAME bm_feedback_ui_tests COMMAND bm_feedback_ui_tests)
+    add_test(NAME bm_update_ui_tests COMMAND bm_update_ui_tests)
     add_test(NAME bm_guard_import_ui_tests COMMAND bm_guard_import_ui_tests)
     find_package(Python3 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)

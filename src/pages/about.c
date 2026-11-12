@@ -249,6 +249,11 @@ void bm_page_about(cui_ctx *ui, bm_app *app) {
         cui_separator(ui);
 
         cui_row(ui, .gap = 8, .wrap = true) {
+            if (cui_button(ui, "检查更新", .icon = CUI_ICON_REFRESH_CW,
+                           .variant = CUI_BUTTON_OUTLINE, .size = CUI_SIZE_SM,
+                           .loading = app->update_checking, .disabled = app->update_checking)) {
+                bm_update_check(app, true);
+            }
             if (cui_button(ui, "GitHub 仓库", .icon = CUI_ICON_EXTERNAL_LINK, .variant = CUI_BUTTON_OUTLINE, .size = CUI_SIZE_SM)) {
                 cui_app_open_url("https://github.com/Xinrea/bili-messenger");
             }

@@ -17,6 +17,11 @@ void bm_toast_push(bm_app *app, const char *title, const char *desc, cui_tone to
     assert(!"Unexpected submission in UI test");
 }
 
+void bm_update_check(bm_app *app, bool manual) {
+    (void)app; (void)manual;
+    assert(!"Unexpected update check in feedback UI test");
+}
+
 static void frame(cui_ctx *ui, bm_app *app, int frames) {
     for (int i = 0; i < frames; i++) {
         cui_begin_frame(ui, 1.0f / 60.0f);
