@@ -25,6 +25,7 @@ find_package(Threads REQUIRED)
 # --- core library: everything except the window, so the tests can link it ----
 add_library(bm_core STATIC
     src/core/util.c
+    src/core/version.c
     src/core/md5.c
     src/core/http.c
     src/core/diagnostics.c
@@ -80,6 +81,7 @@ if(APPLE)
 elseif(WIN32)
     list(APPEND BM_APP_SOURCES src/ui/window_win.c)
     add_executable(BiliMessenger ${BM_APP_SOURCES} assets/app.rc)
+    configure_file(assets/windows-installer.iss.in BiliMessenger.iss @ONLY)
 else()
     list(APPEND BM_APP_SOURCES src/ui/window_stub.c)
     add_executable(BiliMessenger ${BM_APP_SOURCES})

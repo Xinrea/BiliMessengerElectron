@@ -32,8 +32,13 @@
 
 前往 **[GitHub Releases](https://github.com/Xinrea/bili-messenger/releases)**，按操作系统和处理器架构选择对应文件，并参考该版本的发布说明安装。
 
-- **macOS / Windows**：发布包以 Releases 中实际提供的文件为准。
+- **macOS**：下载 `BiliMessenger-macOS.zip`，解压后打开应用。
+- **Windows x64**（新版工作流提供两种形式）：
+  - `BiliMessenger-Windows-x64.exe`：免安装单文件，下载后直接运行，无需附带 DLL 或另装 Visual C++ 运行库。
+  - `BiliMessenger-Windows-x64-Setup.exe`：安装程序，为当前用户安装，创建开始菜单快捷方式，可选桌面快捷方式，并支持卸载。
 - **Linux**：请参考[构建与测试](docs/development.md)从源码编译。
+
+Windows 两种形式共用 `%APPDATA%\bilimessenger` 中的用户数据；免安装不代表数据保存在 exe 旁，卸载安装版也不会删除用户数据。旧版本的下载文件以对应 Release 为准。
 
 本 README 介绍当前源码中的 **v2.0 原生版**，基于 C99 + [CUI](https://github.com/yappologistic/CUI) 构建，不再依赖 Electron。已发布版本可能与截图、功能说明不同，需要体验当前源码时请自行构建。
 

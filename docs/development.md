@@ -60,4 +60,37 @@ ctest --test-dir build -C Release --output-on-failure -V
 
 测试默认开启，可通过 `-DBM_BUILD_TESTS=OFF` 关闭。测试覆盖核心逻辑、反馈持久化、反馈界面及 HTTP 提交等行为，具体目标见 [CMakeLists.txt](../CMakeLists.txt)。
 
-仓库的 [Release 工作流](../.github/workflows/release.yml) 构建并测试 macOS 和 Windows 版本，分别打包为 `BiliMessenger-macOS.zip` 与 `BiliMessenger-Windows-x64.zip`。Linux 不在当前发布工作流中。
+仓库的 [Release 工作流](../.github/workflows/release.yml) 构建并测试 macOS 和 Windows 版本：
+
+| 平台 | 发布文件 | 说明 |
+| --- | --- | --- |
+| macOS | `BiliMessenger-macOS.zip` | 应用包 |
+| Windows x64 | `BiliMessenger-Windows-x64.exe` | 免安装单文件 |
+| Windows x64 | `BiliMessenger-Windows-x64-Setup.exe` | 当前用户安装程序，无需管理员权限，支持快捷方式和卸载 |
+
+推送 tag 时上传到 GitHub Release；手动触发时不创建 Release，可从 Actions 的 artifacts 下载构建产物。Linux 不在当前发布工作流中。
+
+发布 tag 使用 SemVer 格式（可带 `v` 前缀），例如 `v2.0.1`。带预发布后缀的 tag（如 `v2.1.0-beta.1`、`v2.1.0-rc.1`）会自动标记为 GitHub prerelease；`+` 后的构建元数据不影响该判断。两个平台共用同一判断结果。客户端通过 GitHub `/releases/latest` 获取正式版，并与 CMake 提供的 `BM_VERSION` 做语义化版本比较；不会提示升级到更低或相同版本，构建元数据不参与版本优先级比较。
+
+Windows 发布构建不同于上面的默认动态链接开发构建：使用 `curl[core,ssl]:x64-windows-static`、静态 CUI 和静态 MSVC 运行库。curl 的 `ssl` feature 在 Windows 上启用 Schannel，HTTPS 使用 Windows 证书存储，不需要附带 OpenSSL DLL 或 CA 文件。两种发布形式使用同一份应用 exe，不打包测试程序、静态库或构建目录中的其他文件。
+
+本地复现 Windows 发布打包（PowerShell；需要 Inno Setup 6.3+）：
+
+```powershell
+vcpkg install "curl[core,ssl]:x64-windows-static"
+cmake -S . -B build-release -A x64 `
+  -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+  -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+  '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>' `
+  -DCMAKE_POLICY_DEFAULT_CMP0091=NEW `
+  -DCUI_BUILD_SHARED=OFF -DBM_BUILD_TESTS=ON
+cmake --build build-release --config Release -j4
+ctest --test-dir build-release -C Release --output-on-failure --no-tests=error -V
+
+New-Item -ItemType Directory -Path dist -Force | Out-Null
+Copy-Item build-release/Release/BiliMessenger.exe dist/BiliMessenger-Windows-x64.exe
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+  "/DSourceDir=$pwd\build-release\Release" "/DOutputDir=$pwd\dist" build-release/BiliMessenger.iss
+```
+
+安装脚本由 CMake 从 `assets/windows-installer.iss.in` 生成，版本号取自 `project(... VERSION ...)`。安装位置默认为 `%LOCALAPPDATA%\Programs\BiliMessenger`；卸载保留 `%APPDATA%\bilimessenger` 中的用户数据。工作流还会静默安装并校验安装后的 exe 与免安装文件哈希一致、卸载程序存在。
