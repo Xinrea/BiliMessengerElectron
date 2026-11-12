@@ -15,7 +15,7 @@
 ## 获取源码
 
 ```bash
-git clone --recurse-submodules https://github.com/Xinrea/bili-messenger.git
+git clone --recurse-submodules https://github.com/powerlive-io/bili-messenger.git
 cd bili-messenger
 ```
 

@@ -192,9 +192,13 @@ static void test_diagnostics(void) {
     req.url = "https://PRIVATE_HOST/PRIVATE_PATH?PRIVATE_QUERY";
     assert(bm_http_request(&req, &resp));
     bm_http_resp_free(&resp);
+    req.url = "https://api.github.com/repos/powerlive-io/bili-messenger/releases/latest";
+    assert(bm_http_request(&req, &resp));
+    bm_http_resp_free(&resp);
     bm_http_set_mock(NULL, NULL);
     bm_diagnostics_snapshot(snapshot, sizeof snapshot);
     assert(strstr(snapshot, "op=account_check http=200 transport=0 api=-101"));
+    assert(strstr(snapshot, "op=update_check http=200 transport=0 api=-101"));
     assert(strstr(snapshot, "op=other_request"));
     assert(!strstr(snapshot, "PRIVATE"));
     assert(bm_diagnostics_snapshot(small, sizeof small) == 0 && small[0] == '\0');

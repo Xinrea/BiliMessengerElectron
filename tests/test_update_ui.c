@@ -18,7 +18,7 @@ static int spawn_count, notice_count, open_count;
 static cui_tone notice_tone;
 static char notice[256], opened_url[512];
 static const char *release_tag = "v9999.0.0";
-static const char *release_url = "https://github.com/Xinrea/bili-messenger/releases/tag/v9999.0.0";
+static const char *release_url = "https://github.com/powerlive-io/bili-messenger/releases/tag/v9999.0.0";
 
 bool bm_job_spawn(bm_job_fn fn, void *data) {
     spawn_count++;
@@ -185,7 +185,7 @@ static void test_results(void) {
         bm_update_check(app, true);
         finish_check(app);
         assert(app->update_toast_pending);
-        assert(!strcmp(app->update_url, "https://github.com/Xinrea/bili-messenger/releases/latest"));
+        assert(!strcmp(app->update_url, "https://github.com/powerlive-io/bili-messenger/releases/latest"));
     }
     free(app);
 }

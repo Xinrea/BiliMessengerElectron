@@ -10,15 +10,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Xinrea/bili-messenger/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/Xinrea/bili-messenger/release.yml" alt="构建状态"></a>
-  <a href="https://github.com/Xinrea/bili-messenger/releases/latest"><img src="https://img.shields.io/github/v/release/Xinrea/bili-messenger" alt="最新版本"></a>
-  <a href="https://github.com/Xinrea/bili-messenger/releases"><img src="https://img.shields.io/github/downloads/Xinrea/bili-messenger/total" alt="累计下载"></a>
+  <a href="https://github.com/powerlive-io/bili-messenger/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/powerlive-io/bili-messenger/release.yml" alt="构建状态"></a>
+  <a href="https://github.com/powerlive-io/bili-messenger/releases/latest"><img src="https://img.shields.io/github/v/release/powerlive-io/bili-messenger" alt="最新版本"></a>
+  <a href="https://github.com/powerlive-io/bili-messenger/releases"><img src="https://img.shields.io/github/downloads/powerlive-io/bili-messenger/total" alt="累计下载"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Xinrea/bili-messenger/releases">下载软件</a> ·
+  <a href="https://github.com/powerlive-io/bili-messenger/releases">下载软件</a> ·
   <a href="#快速上手">快速上手</a> ·
-  <a href="https://github.com/Xinrea/bili-messenger/issues">问题反馈</a> ·
+  <a href="https://github.com/powerlive-io/bili-messenger/issues">问题反馈</a> ·
   <a href="docs/development.md">构建与测试</a>
 </p>
 
@@ -30,7 +30,7 @@
 
 ## 下载与安装
 
-前往 **[GitHub Releases](https://github.com/Xinrea/bili-messenger/releases)**，按操作系统和处理器架构选择对应文件，并参考该版本的发布说明安装。
+前往 **[GitHub Releases](https://github.com/powerlive-io/bili-messenger/releases)**，按操作系统和处理器架构选择对应文件，并参考该版本的发布说明安装。
 
 - **macOS**：下载 `BiliMessenger-macOS.zip`，解压后打开应用。
 - **Windows x64**（新版工作流提供两种形式）：
@@ -100,7 +100,7 @@ Windows 两种形式共用 `%APPDATA%\bilimessenger` 中的用户数据；免安
 ## 问题反馈
 
 - **软件内反馈**：在「关于软件」→「问题反馈」中填写问题描述，可选填邮箱。支持预览或取消附带诊断日志；关闭弹窗后仍会保留草稿和提交状态。
-- **GitHub Issues**：前往 [Issues](https://github.com/Xinrea/bili-messenger/issues) 描述复现步骤、系统和软件版本。请先移除截图或附件中的 Cookie、兑换码及私信内容等敏感信息。
+- **GitHub Issues**：前往 [Issues](https://github.com/powerlive-io/bili-messenger/issues) 描述复现步骤、系统和软件版本。请先移除截图或附件中的 Cookie、兑换码及私信内容等敏感信息。
 
 诊断日志仅在提交反馈时上传，不会主动上报。采集范围、隐私处理和重试机制见[反馈与诊断日志](docs/diagnostics.md)。
 
