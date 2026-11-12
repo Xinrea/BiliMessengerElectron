@@ -89,6 +89,17 @@ int bm_guard_list_remove_uid(bm_guard_list *list, uint64_t uid) {
     return removed;
 }
 
+void bm_guard_note_send_result(
+    bm_guard_list *roster,
+    bm_guard_list *queue,
+    const bm_guard *target,
+    bool delivered
+) {
+    if (!target || target->uid == 0) return;
+    if (delivered) bm_guard_list_remove_uid(roster, target->uid);
+    bm_guard_list_remove_uid(queue, target->uid);
+}
+
 const char *bm_guard_level_str(const bm_guard *g) {
     if (!g) return "自定义";
     if (g->custom_title[0]) return g->custom_title;

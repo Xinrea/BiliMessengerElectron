@@ -41,6 +41,7 @@ typedef struct {
     bm_guard target;
     char message[4096];
     bool use_code;
+    char code_used[256];
     int interval_ms;
     char msg_key_out[64];
     bool ok;
@@ -48,6 +49,16 @@ typedef struct {
 } send_step_job;
 
 static void trigger_next_send_step(bm_app *app);
+
+/* Put the visible queue back in sync with the roster after this pass stops.
+   Delivered recipients are already gone from the roster. Failures and people
+   who were filtered out of the pass are still in it, so they come back here
+   instead of being replaced by the failure list. */
+static void release_send_queue(bm_app *app) {
+    app->msg_in_progress = false;
+    bm_guard_list_clear(&app->msg_remain_list);
+    bm_refresh_guard_stats_and_filters(app, true);
+}
 
 static void on_send_step_done(void *raw, void *user) {
     send_step_job *d = (send_step_job *)raw;
@@ -62,13 +73,11 @@ static void on_send_step_done(void *raw, void *user) {
     } else {
         record_sent_msg(app, &d->target, d->msg_key_out, bm_now_ms());
         if (d->use_code) {
-            bm_store_pop_first_code(&app->store);
+            bm_store_consume_code(&app->store, d->code_used);
         }
     }
 
-    if (app->store.guards.count > 0) {
-        bm_guard_list_remove_at(&app->store.guards, 0);
-    }
+    bm_guard_note_send_result(&app->store.original_guards, &app->store.guards, &d->target, d->ok);
 
     app->msg_progress_index++;
     bm_store_save(&app->store);
@@ -76,6 +85,8 @@ static void on_send_step_done(void *raw, void *user) {
 
     if (app->msg_in_progress && !app->msg_is_recalling) {
         trigger_next_send_step(app);
+    } else if (!app->msg_is_recalling) {
+        release_send_queue(app);
     }
 }
 
@@ -90,16 +101,13 @@ static void send_step_worker(void *raw) {
 
 static void trigger_next_send_step(bm_app *app) {
     if (app->store.guards.count == 0) {
-        bm_diagnostics_event(BM_EVENT_BATCH_FINISH, BM_LOG_INFO, 0, app->msg_remain_list.count);
-        app->msg_in_progress = false;
+        int failed = app->msg_remain_list.count;
+        bm_diagnostics_event(BM_EVENT_BATCH_FINISH, BM_LOG_INFO, 0, failed);
         app->msg_is_recalling = false;
-        bm_guard_list_copy(&app->store.guards, &app->msg_remain_list);
-        bm_guard_list_copy(&app->store.original_guards, &app->msg_remain_list);
-        bm_guard_list_clear(&app->msg_remain_list);
-        bm_refresh_guard_stats_and_filters(app, true);
+        release_send_queue(app);
         bm_toast_push(app, "群发任务已完成",
-                      app->store.guards.count > 0 ? "部分发送失败的用户已保留在目标列表中" : "全部目标用户私信均已成功送达",
-                      app->store.guards.count > 0 ? CUI_TONE_WARNING : CUI_TONE_SUCCESS);
+                      failed > 0 ? "部分发送失败的用户已保留在目标列表中" : "全部目标用户私信均已成功送达",
+                      failed > 0 ? CUI_TONE_WARNING : CUI_TONE_SUCCESS);
         return;
     }
 
@@ -107,14 +115,14 @@ static void trigger_next_send_step(bm_app *app) {
     bool use_code = strstr(tpl, "{code}") != NULL;
     if (use_code && app->store.code_count <= 0) {
         bm_diagnostics_event(BM_EVENT_BATCH_STOP, BM_LOG_WARNING, 1, 0); /* No redemption codes left. */
-        app->msg_in_progress = false;
+        release_send_queue(app);
         bm_toast_push(app, "兑换码已耗尽，群发中止", NULL, CUI_TONE_DANGER);
         return;
     }
 
     send_step_job *d = (send_step_job *)calloc(1, sizeof *d);
     if (!d) {
-        app->msg_in_progress = false;
+        release_send_queue(app);
         return;
     }
     d->login = app->store.login;
@@ -123,11 +131,12 @@ static void trigger_next_send_step(bm_app *app) {
     d->interval_ms = app->store.send_interval > 0 ? app->store.send_interval : 1000;
 
     const char *code_str = (use_code && app->store.code_count > 0) ? app->store.codes[0].code : "";
+    bm_strlcpy(d->code_used, code_str, sizeof d->code_used);
     bm_template_process_today(tpl, &d->target, code_str, d->message, sizeof d->message);
 
     if (!bm_job_spawn(send_step_worker, d)) {
         free(d);
-        app->msg_in_progress = false;
+        release_send_queue(app);
     }
 }
 

@@ -82,8 +82,12 @@ void bm_toast_flush(bm_app *app, cui_ctx *ui) {
 
 void bm_refresh_guard_stats_and_filters(bm_app *app, bool save_to_disk) {
     bm_guard_compute_stats(&app->store.original_guards, &app->stats);
-    bm_guard_apply_filters(&app->store.original_guards, &app->filters, &app->store.guards);
+    /* The live queue is the broadcast cursor. Rebuilding it from the roster
+       while a pass is running puts already-attempted recipients back in front
+       of the in-flight send. A stopped pass rebuilds so failures, and roster
+       members who were filtered out of this pass, are still there. */
     if (!app->msg_in_progress) {
+        bm_guard_apply_filters(&app->store.original_guards, &app->filters, &app->store.guards);
         app->msg_progress_index = 0;
         app->msg_total_count = app->store.guards.count;
     }

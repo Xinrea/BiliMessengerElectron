@@ -69,6 +69,9 @@ bool bm_store_delete_template(bm_store *s, const char *name);
 int bm_store_import_codes(bm_store *s, const char *multiline_text);
 int bm_store_delete_selected_codes(bm_store *s);
 bool bm_store_pop_first_code(bm_store *s);
+/* Remove the code that was actually sent. A missing code is left alone so a
+   list edit during the request cannot consume a different one. */
+bool bm_store_consume_code(bm_store *s, const char *code);
 void bm_store_clear_codes(bm_store *s);
 
 #endif /* BM_STORE_H */

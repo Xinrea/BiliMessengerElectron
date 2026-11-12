@@ -570,6 +570,74 @@ static void test_version_comparison(void) {
     printf("PASS semantic version precedence and invalid version rejection\n");
 }
 
+static void test_send_queue_keeps_unsent_roster_members(void) {
+    const char *path = "bm_test_send_queue.json";
+    bm_store s;
+    bm_store_init(&s);
+    bm_strlcpy(s.path, path, sizeof s.path);
+    bm_strlcpy(s.room_id, "1", sizeof s.room_id);
+
+    bm_guard governor = { .uid = 1, .username = "Gov", .guard_level = 1 };
+    bm_guard alice = { .uid = 2, .username = "Alice", .guard_level = 3 };
+    bm_guard bob = { .uid = 3, .username = "Bob", .guard_level = 3 };
+    assert(bm_guard_list_push(&s.original_guards, &governor));
+    assert(bm_guard_list_push(&s.original_guards, &alice));
+    assert(bm_guard_list_push(&s.original_guards, &bob));
+
+    /* Captains are the live queue. The governor stays on the roster only. */
+    bm_guard_filters captains = { .type1 = false, .type2 = true, .type3 = true };
+    bm_guard_apply_filters(&s.original_guards, &captains, &s.guards);
+    assert(s.guards.count == 2 && s.guards.items[0].uid == 2);
+
+    /* The in-flight message captured Alice's code, then the list was reordered. */
+    assert(bm_store_import_codes(&s, "CODE-BOB\nCODE-ALICE\nCODE-CINDY") == 3);
+    assert(bm_store_consume_code(&s, "CODE-ALICE"));
+    assert(s.code_count == 2);
+    assert(strcmp(s.codes[0].code, "CODE-BOB") == 0);
+    assert(strcmp(s.codes[1].code, "CODE-CINDY") == 0);
+    assert(!bm_store_consume_code(&s, "CODE-ALICE"));
+
+    /* Alice is delivered even if a refresh moved her off the head of the queue. */
+    bm_guard bob_first = s.guards.items[1];
+    s.guards.items[1] = s.guards.items[0];
+    s.guards.items[0] = bob_first;
+    bm_guard_note_send_result(&s.original_guards, &s.guards, &alice, true);
+    assert(s.guards.count == 1 && s.guards.items[0].uid == 3);
+    assert(bm_guard_list_find_uid(&s.original_guards, 2) < 0);
+
+    /* Bob's request fails: off the live queue, still on the roster. */
+    bm_guard_note_send_result(&s.original_guards, &s.guards, &bob, false);
+    assert(s.guards.count == 0);
+    assert(s.original_guards.count == 2);
+    assert(bm_guard_list_find_uid(&s.original_guards, 1) >= 0);
+    assert(bm_guard_list_find_uid(&s.original_guards, 3) >= 0);
+
+    assert(bm_store_save(&s));
+    bm_store_free(&s);
+
+    /* Restart rebuilds the working queue from the roster, filters included. */
+    bm_store loaded;
+    bm_store_init(&loaded);
+    assert(bm_store_load(&loaded, path));
+    bm_guard_filters all = { .type1 = true, .type2 = true, .type3 = true };
+    bm_guard_apply_filters(&loaded.original_guards, &all, &loaded.guards);
+    assert(loaded.guards.count == 2);
+    assert(bm_guard_list_find_uid(&loaded.guards, 2) < 0);
+    assert(bm_guard_list_find_uid(&loaded.guards, 1) >= 0);
+    assert(bm_guard_list_find_uid(&loaded.guards, 3) >= 0);
+    assert(loaded.code_count == 2);
+    assert(strcmp(loaded.codes[0].code, "CODE-BOB") == 0);
+    assert(strcmp(loaded.codes[1].code, "CODE-CINDY") == 0);
+
+    bm_guard_apply_filters(&loaded.original_guards, &captains, &loaded.guards);
+    assert(loaded.guards.count == 1 && loaded.guards.items[0].uid == 3);
+    assert(loaded.original_guards.count == 2);
+
+    bm_store_free(&loaded);
+    assert(remove(path) == 0);
+    printf("PASS delivered recipients stay dequeued and filtered-out roster entries survive\n");
+}
+
 int main(void) {
     test_version_comparison();
     test_gift_stream_levels_and_headers();
@@ -583,6 +651,7 @@ int main(void) {
     test_gift_stream_errors();
     test_wbi_and_send_message();
     test_guards_templates_and_store();
+    test_send_queue_keeps_unsent_roster_members();
     test_electron_store_config_compat();
     printf("All test suites passed!\n");
     return 0;
