@@ -89,6 +89,23 @@ int bm_guard_list_remove_uid(bm_guard_list *list, uint64_t uid) {
     return removed;
 }
 
+void bm_guard_note_send_result(
+    bm_guard_list *roster,
+    bm_guard_list *queue,
+    const bm_guard *target,
+    bool delivered
+) {
+    if (!target) return;
+    uint64_t uid = target->uid;
+    if (uid == 0) {
+        /* Invalid records have no identity: advance one entry, keep the roster. */
+        bm_guard_list_remove_at(queue, bm_guard_list_find_uid(queue, 0));
+        return;
+    }
+    if (delivered) bm_guard_list_remove_uid(roster, uid);
+    bm_guard_list_remove_uid(queue, uid);
+}
+
 const char *bm_guard_level_str(const bm_guard *g) {
     if (!g) return "自定义";
     if (g->custom_title[0]) return g->custom_title;
@@ -142,21 +159,45 @@ void bm_guard_compute_stats(const bm_guard_list *list, bm_guard_stats *stats) {
     }
 }
 
+static bool matches_filters(const bm_guard *g, const bm_guard_filters *filters) {
+    if (g->custom_title[0] == '\0') {
+        if (g->guard_level == 1) return filters->type1;
+        if (g->guard_level == 2) return filters->type2;
+        if (g->guard_level == 3) return filters->type3;
+    }
+    return true;
+}
+
 void bm_guard_apply_filters(const bm_guard_list *src, const bm_guard_filters *filters, bm_guard_list *dst) {
     bm_guard_list_clear(dst);
     if (!src || !filters) return;
     for (int i = 0; i < src->count; i++) {
         const bm_guard *g = &src->items[i];
-        bool keep = true;
-        if (g->custom_title[0] == '\0') {
-            if (g->guard_level == 1) keep = filters->type1;
-            else if (g->guard_level == 2) keep = filters->type2;
-            else if (g->guard_level == 3) keep = filters->type3;
-        }
-        if (keep) {
+        if (matches_filters(g, filters)) {
             bm_guard_list_push(dst, g);
         }
     }
+}
+
+void bm_guard_prune_queue(const bm_guard_list *roster, const bm_guard_filters *filters, bm_guard_list *queue) {
+    int w = 0;
+    for (int r = 0; r < queue->count; r++) {
+        const bm_guard *g = &queue->items[r];
+        if (!matches_filters(g, filters)) continue;
+        /* Gift history can contain multiple tiers for one UID. The first
+           roster occurrence does not represent every queued record. */
+        bool eligible = false;
+        for (int i = 0; i < roster->count; i++) {
+            if (roster->items[i].uid == g->uid && matches_filters(&roster->items[i], filters)) {
+                eligible = true;
+                break;
+            }
+        }
+        if (!eligible) continue;
+        if (w != r) queue->items[w] = queue->items[r];
+        w++;
+    }
+    queue->count = w;
 }
 
 static int effective_level_rank(const bm_guard *g) {

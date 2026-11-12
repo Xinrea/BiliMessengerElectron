@@ -405,6 +405,19 @@ bool bm_store_pop_first_code(bm_store *s) {
     return true;
 }
 
+bool bm_store_consume_code(bm_store *s, const char *code) {
+    if (!s || !code || !code[0]) return false;
+    for (int i = 0; i < s->code_count; i++) {
+        if (strcmp(s->codes[i].code, code) != 0) continue;
+        if (i + 1 < s->code_count) {
+            memmove(&s->codes[i], &s->codes[i + 1], (size_t)(s->code_count - i - 1) * sizeof(bm_code_item));
+        }
+        s->code_count--;
+        return true;
+    }
+    return false;
+}
+
 void bm_store_clear_codes(bm_store *s) {
     if (!s) return;
     s->code_count = 0;

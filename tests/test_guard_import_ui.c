@@ -46,6 +46,7 @@ void bm_toast_push(bm_app *app, const char *title, const char *desc, cui_tone to
     bm_strlcpy(last_toast_desc, desc ? desc : "", sizeof last_toast_desc);
 }
 void bm_refresh_guard_stats_and_filters(bm_app *app, bool save) {}
+void bm_guard_roster_replaced(bm_app *app) {}
 void bm_render_setting_alert(cui_ctx *ui, bm_app *app) {}
 void bm_guard_badge(cui_ctx *ui, const bm_guard *g) {}
 bool bm_guard_filter_chip(cui_ctx *ui, const char *id, int level, const char *label, bool *active) {

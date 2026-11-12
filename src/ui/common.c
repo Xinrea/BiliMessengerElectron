@@ -82,14 +82,34 @@ void bm_toast_flush(bm_app *app, cui_ctx *ui) {
 
 void bm_refresh_guard_stats_and_filters(bm_app *app, bool save_to_disk) {
     bm_guard_compute_stats(&app->store.original_guards, &app->stats);
-    bm_guard_apply_filters(&app->store.original_guards, &app->filters, &app->store.guards);
-    if (!app->msg_in_progress) {
-        app->msg_progress_index = 0;
-        app->msg_total_count = app->store.guards.count;
+    /* The live queue is the broadcast cursor. Rebuilding it from the roster
+       while a pass is running puts already-attempted recipients back in front
+       of the in-flight send. A stopped pass rebuilds so failures, and roster
+       members who were filtered out of this pass, are still there. */
+    if (!app->msg_in_progress || app->msg_is_recalling) {
+        bm_guard_apply_filters(&app->store.original_guards, &app->filters, &app->store.guards);
+        if (!app->msg_in_progress) {
+            app->msg_progress_index = 0;
+            app->msg_total_count = app->store.guards.count;
+        }
+    } else {
+        bm_guard_prune_queue(&app->store.original_guards, &app->filters, &app->store.guards);
     }
     if (save_to_disk) {
         bm_store_save(&app->store);
     }
+}
+
+void bm_guard_roster_replaced(bm_app *app) {
+    app->guard_roster_generation++;
+    if (!app->msg_is_recalling) {
+        if (app->msg_in_progress || app->msg_send_pending) {
+            bm_toast_push(app, "名单已替换，群发已停止", "已发出的请求仍会完成；新名单不会被旧任务移除", CUI_TONE_INFO);
+        }
+        app->msg_in_progress = false;
+    }
+    bm_guard_list_clear(&app->msg_remain_list);
+    bm_refresh_guard_stats_and_filters(app, true);
 }
 
 void bm_sync_theme_tokens(cui_ctx *ui, bm_app *app) {

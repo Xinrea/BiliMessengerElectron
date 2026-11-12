@@ -39,8 +39,10 @@ static const char *current_template_content(const bm_app *app) {
 typedef struct {
     bm_login_info login;
     bm_guard target;
+    uint64_t roster_generation;
     char message[4096];
     bool use_code;
+    char code_used[256];
     int interval_ms;
     char msg_key_out[64];
     bool ok;
@@ -49,39 +51,59 @@ typedef struct {
 
 static void trigger_next_send_step(bm_app *app);
 
+/* Put the visible queue back in sync with the roster after this pass stops.
+   Delivered recipients are already gone from the roster. Failures and people
+   who were filtered out of the pass are still in it, so they come back here
+   instead of being replaced by the failure list. */
+static void release_send_queue(bm_app *app) {
+    app->msg_in_progress = false;
+    bm_guard_list_clear(&app->msg_remain_list);
+    bm_refresh_guard_stats_and_filters(app, true);
+}
+
 static void on_send_step_done(void *raw, void *user) {
     send_step_job *d = (send_step_job *)raw;
     bm_app *app = (bm_app *)user;
+    app->msg_send_pending = false;
+    bool same_roster = d->roster_generation == app->guard_roster_generation;
     bm_diagnostics_event(BM_EVENT_MESSAGE_SEND, d->ok ? BM_LOG_INFO : BM_LOG_ERROR, d->err.code, 1);
 
     if (!d->ok) {
         char title[160];
         snprintf(title, sizeof title, "向 %s 发送失败", d->target.username);
         bm_toast_push(app, title, d->err.message, CUI_TONE_DANGER);
-        bm_guard_list_push(&app->msg_remain_list, &d->target);
+        if (same_roster) bm_guard_list_push(&app->msg_remain_list, &d->target);
     } else {
         record_sent_msg(app, &d->target, d->msg_key_out, bm_now_ms());
         if (d->use_code) {
-            bm_store_pop_first_code(&app->store);
+            bm_store_consume_code(&app->store, d->code_used);
         }
     }
 
-    if (app->store.guards.count > 0) {
-        bm_guard_list_remove_at(&app->store.guards, 0);
+    if (same_roster) {
+        bm_guard_note_send_result(&app->store.original_guards, &app->store.guards, &d->target, d->ok);
+        app->msg_progress_index++;
     }
+    bm_guard_compute_stats(&app->store.original_guards, &app->stats);
 
-    app->msg_progress_index++;
     bm_store_save(&app->store);
     free(d);
 
     if (app->msg_in_progress && !app->msg_is_recalling) {
         trigger_next_send_step(app);
+    } else if (!app->msg_is_recalling) {
+        release_send_queue(app);
     }
 }
 
 static void send_step_worker(void *raw) {
     send_step_job *d = (send_step_job *)raw;
-    d->ok = bm_bili_send_message(&d->login, d->target.uid, d->message, d->msg_key_out, sizeof d->msg_key_out, &d->err);
+    if (d->target.uid == 0) {
+        d->err.code = -1;
+        bm_strlcpy(d->err.message, "无效的用户 UID，已跳过", sizeof d->err.message);
+    } else {
+        d->ok = bm_bili_send_message(&d->login, d->target.uid, d->message, d->msg_key_out, sizeof d->msg_key_out, &d->err);
+    }
     if (d->interval_ms > 0) {
         bm_sleep_ms((uint32_t)d->interval_ms);
     }
@@ -89,17 +111,15 @@ static void send_step_worker(void *raw) {
 }
 
 static void trigger_next_send_step(bm_app *app) {
+    if (app->msg_send_pending) return;
     if (app->store.guards.count == 0) {
-        bm_diagnostics_event(BM_EVENT_BATCH_FINISH, BM_LOG_INFO, 0, app->msg_remain_list.count);
-        app->msg_in_progress = false;
+        int failed = app->msg_remain_list.count;
+        bm_diagnostics_event(BM_EVENT_BATCH_FINISH, BM_LOG_INFO, 0, failed);
         app->msg_is_recalling = false;
-        bm_guard_list_copy(&app->store.guards, &app->msg_remain_list);
-        bm_guard_list_copy(&app->store.original_guards, &app->msg_remain_list);
-        bm_guard_list_clear(&app->msg_remain_list);
-        bm_refresh_guard_stats_and_filters(app, true);
+        release_send_queue(app);
         bm_toast_push(app, "群发任务已完成",
-                      app->store.guards.count > 0 ? "部分发送失败的用户已保留在目标列表中" : "全部目标用户私信均已成功送达",
-                      app->store.guards.count > 0 ? CUI_TONE_WARNING : CUI_TONE_SUCCESS);
+                      failed > 0 ? "部分发送失败的用户已保留在目标列表中" : "全部目标用户私信均已成功送达",
+                      failed > 0 ? CUI_TONE_WARNING : CUI_TONE_SUCCESS);
         return;
     }
 
@@ -107,27 +127,31 @@ static void trigger_next_send_step(bm_app *app) {
     bool use_code = strstr(tpl, "{code}") != NULL;
     if (use_code && app->store.code_count <= 0) {
         bm_diagnostics_event(BM_EVENT_BATCH_STOP, BM_LOG_WARNING, 1, 0); /* No redemption codes left. */
-        app->msg_in_progress = false;
+        release_send_queue(app);
         bm_toast_push(app, "兑换码已耗尽，群发中止", NULL, CUI_TONE_DANGER);
         return;
     }
 
     send_step_job *d = (send_step_job *)calloc(1, sizeof *d);
     if (!d) {
-        app->msg_in_progress = false;
+        release_send_queue(app);
         return;
     }
     d->login = app->store.login;
     d->target = app->store.guards.items[0];
+    d->roster_generation = app->guard_roster_generation;
     d->use_code = use_code;
     d->interval_ms = app->store.send_interval > 0 ? app->store.send_interval : 1000;
 
     const char *code_str = (use_code && app->store.code_count > 0) ? app->store.codes[0].code : "";
+    bm_strlcpy(d->code_used, code_str, sizeof d->code_used);
     bm_template_process_today(tpl, &d->target, code_str, d->message, sizeof d->message);
 
+    app->msg_send_pending = true;
     if (!bm_job_spawn(send_step_worker, d)) {
+        app->msg_send_pending = false;
         free(d);
-        app->msg_in_progress = false;
+        release_send_queue(app);
     }
 }
 
@@ -380,7 +404,7 @@ void bm_page_message(cui_ctx *ui, bm_app *app) {
                 cui_row(ui, .gap = 10, .align = CUI_ALIGN_CENTER, .width = CUI_FILL) {
                     if (!app->msg_in_progress) {
                         if (cui_button(ui, "开始群发私信", .icon = CUI_ICON_SEND, .variant = CUI_BUTTON_PRIMARY,
-                                       .disabled = guard_cnt == 0 || !tpl_ready || !app->store.login.has_login)) {
+                                       .disabled = app->msg_send_pending || guard_cnt == 0 || !tpl_ready || !app->store.login.has_login)) {
                             if (use_code && code_cnt < guard_cnt) {
                                 bm_toast_push(app, "兑换码数量不足", "请先补充兑换码或移除模板中的 {code} 标签", CUI_TONE_DANGER);
                             } else {
@@ -395,12 +419,12 @@ void bm_page_message(cui_ctx *ui, bm_app *app) {
                     } else if (!app->msg_is_recalling) {
                         if (cui_button(ui, "暂停群发", .icon = CUI_ICON_PAUSE, .variant = CUI_BUTTON_DANGER)) {
                             app->msg_in_progress = false;
-                            bm_toast_push(app, "已暂停群发任务", "剩余未发用户仍保留在队列中，可随时继续", CUI_TONE_INFO);
+                            bm_toast_push(app, "已暂停群发任务", "等待已发出的请求完成后可继续，剩余用户会保留", CUI_TONE_INFO);
                         }
                     }
 
                     if (cui_button(ui, "跳过队首用户", .icon = CUI_ICON_SKIP_FORWARD, .size = CUI_SIZE_SM,
-                                   .variant = CUI_BUTTON_OUTLINE, .disabled = app->msg_in_progress || guard_cnt == 0)) {
+                                   .variant = CUI_BUTTON_OUTLINE, .disabled = app->msg_in_progress || app->msg_send_pending || guard_cnt == 0)) {
                         uint64_t skip_uid = app->store.guards.items[0].uid;
                         char skip_name[128];
                         bm_strlcpy(skip_name, app->store.guards.items[0].username, sizeof skip_name);
@@ -451,7 +475,7 @@ void bm_page_message(cui_ctx *ui, bm_app *app) {
                     if (!app->msg_in_progress) {
                         if (cui_button(ui, "一键撤回全部消息", .icon = CUI_ICON_ROTATE_CCW, .size = CUI_SIZE_SM,
                                        .variant = CUI_BUTTON_DANGER, .width = CUI_GROW(1),
-                                       .disabled = app->sent_msg_count == 0)) {
+                                       .disabled = app->msg_send_pending || app->sent_msg_count == 0)) {
                             app->msg_in_progress = true;
                             app->msg_is_recalling = true;
                             app->msg_progress_index = 0;
