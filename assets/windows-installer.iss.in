@@ -3,7 +3,8 @@
 [Setup]
 AppId={{8B1C8058-CDA2-48BB-AF51-78ED085D0DB1}
 AppName=BiliMessenger
-AppVersion=@PROJECT_VERSION@
+AppVersion=@BM_VERSION@
+VersionInfoVersion=@PROJECT_VERSION@
 AppPublisher=Xinrea
 AppPublisherURL=https://github.com/Xinrea/bili-messenger
 DefaultDirName={localappdata}\Programs\BiliMessenger

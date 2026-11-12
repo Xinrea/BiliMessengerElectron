@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(BiliMessenger VERSION 2.0.0 LANGUAGES C)
 
+set(BM_RELEASE_VERSION "" CACHE STRING "Release SemVer or tag (empty uses PROJECT_VERSION)")
+include(cmake/BMVersion.cmake)
+bm_resolve_version("${PROJECT_VERSION}" "${BM_RELEASE_VERSION}" BM_VERSION)
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -42,7 +46,7 @@ target_include_directories(bm_core PUBLIC
     third_party/cjson
     third_party/qrcodegen
 )
-target_compile_definitions(bm_core PUBLIC BM_VERSION="${PROJECT_VERSION}")
+target_compile_definitions(bm_core PUBLIC BM_VERSION="${BM_VERSION}")
 target_link_libraries(bm_core PUBLIC CURL::libcurl Threads::Threads)
 if(WIN32)
     target_compile_definitions(bm_core PUBLIC _CRT_SECURE_NO_WARNINGS WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -100,6 +104,8 @@ endif()
 # --- tests -------------------------------------------------------------------
 if(BM_BUILD_TESTS)
     enable_testing()
+    add_test(NAME bm_build_version
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_build_version.cmake)
     add_executable(bm_tests tests/test_core.c)
     target_link_libraries(bm_tests PRIVATE bm_core)
     add_executable(bm_feedback_tests tests/test_feedback.c)

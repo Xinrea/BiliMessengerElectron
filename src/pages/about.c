@@ -237,7 +237,7 @@ void bm_page_about(cui_ctx *ui, bm_app *app) {
                 cui_icon(ui, CUI_ICON_SEND, 26, CUI_COLOR_ACCENT_STRONG);
             }
             cui_column(ui, .gap = 4) {
-                cui_heading(ui, "BiliMessenger 2.0.0", 2);
+                cui_heading(ui, "BiliMessenger " BM_VERSION, 2);
                 cui_secondary(ui, "Bilibili 直播间大航海舰长私信群发与兑换码发放助手");
             }
             cui_spacer(ui);
