@@ -515,6 +515,26 @@ static void test_electron_store_config_compat(void) {
     printf("PASS electron-store config.json load/save compatibility\n");
 }
 
+static const char *reply_github_release(const recorded_req *r, int index, bm_http_resp *resp, void *ctx) {
+    (void)r; (void)index; (void)resp; (void)ctx;
+    return "{\"tag_name\":\"v9999.0.0\",\"body\":\"Release notes\","
+           "\"html_url\":\"https://github.com/powerlive-io/bili-messenger/releases/tag/v9999.0.0\"}";
+}
+
+static void test_github_update(void) {
+    reset_harness(reply_github_release, NULL);
+    char tag[64], body[128], url[512];
+    bm_bili_err err = {0};
+    assert(bm_bili_check_github_update(tag, sizeof tag, body, sizeof body, url, sizeof url, &err));
+    assert(g_h.req_count == 1);
+    assert(strcmp(g_h.reqs[0].url, "https://api.github.com/repos/powerlive-io/bili-messenger/releases/latest") == 0);
+    assert(strcmp(g_h.reqs[0].method, "GET") == 0);
+    assert(strcmp(tag, "v9999.0.0") == 0);
+    assert(strcmp(body, "Release notes") == 0);
+    assert(strcmp(url, "https://github.com/powerlive-io/bili-messenger/releases/tag/v9999.0.0") == 0);
+    printf("PASS GitHub update endpoint and release response\n");
+}
+
 static void test_version_comparison(void) {
     static const struct {
         const char *a;
@@ -572,6 +592,7 @@ static void test_version_comparison(void) {
 
 int main(void) {
     test_version_comparison();
+    test_github_update();
     test_gift_stream_levels_and_headers();
     test_gift_stream_pagination();
     test_gift_stream_leap_months();

@@ -70,7 +70,7 @@ static const char *operation_name(const char *url) {
         {"https://api.live.bilibili.com/xlive/revenue/v1/giftStream/getReceivedGiftStream", "gift_history"},
         {"https://passport.bilibili.com/x/passport-login/web/qrcode/generate", "login_qr_generate"},
         {"https://passport.bilibili.com/x/passport-login/web/qrcode/poll", "login_qr_poll"},
-        {"https://api.github.com/repos/Xinrea/bili-messenger/releases/latest", "update_check"},
+        {"https://api.github.com/repos/powerlive-io/bili-messenger/releases/latest", "update_check"},
         {"https://api.powerlive.io/feedback/prepare", "feedback_prepare"},
         {"https://api.powerlive.io/feedback", "feedback_upload"}
     };

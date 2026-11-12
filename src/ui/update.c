@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BM_RELEASES_URL "https://github.com/Xinrea/bili-messenger/releases/"
+#define BM_RELEASES_URL "https://github.com/powerlive-io/bili-messenger/releases/"
 
 typedef struct {
     char tag[64];

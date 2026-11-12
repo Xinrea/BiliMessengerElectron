@@ -255,7 +255,7 @@ void bm_page_about(cui_ctx *ui, bm_app *app) {
                 bm_update_check(app, true);
             }
             if (cui_button(ui, "GitHub 仓库", .icon = CUI_ICON_EXTERNAL_LINK, .variant = CUI_BUTTON_OUTLINE, .size = CUI_SIZE_SM)) {
-                cui_app_open_url("https://github.com/Xinrea/bili-messenger");
+                cui_app_open_url("https://github.com/powerlive-io/bili-messenger");
             }
             if (cui_button(ui, "作者 Bilibili (@Xinrea)", .icon = CUI_ICON_EXTERNAL_LINK, .variant = CUI_BUTTON_OUTLINE, .size = CUI_SIZE_SM)) {
                 cui_app_open_url("https://space.bilibili.com/475210");
